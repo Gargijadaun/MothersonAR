@@ -36,7 +36,7 @@
       left: 0;
       right: 0;
       bottom: 0;
-      pointer-events: none; /* Allows AR input to pass through */
+      pointer-events: none;
       z-index: 5;
     }
 
@@ -48,7 +48,7 @@
       justify-content: center;
       gap: 10px;
       display: none;
-      pointer-events: auto; /* Enables clicking */
+      pointer-events: auto;
     }
 
     #video-buttons button {
@@ -67,13 +67,13 @@
   </style>
 </head>
 <body>
-  <!-- Start screen -->
+  <!-- Custom Start Screen -->
   <div id="start-screen">
     <button onclick="startAR()">Start AR</button>
     <button onclick="window.location.href='video.html'">Non-AR</button>
   </div>
 
-  <!-- AR overlay for buttons -->
+  <!-- UI Overlay -->
   <div id="ar-overlay">
     <div id="video-buttons">
       <button onclick="changeVideo('assets/video/Video1.mp4')">Video 1</button>
@@ -86,17 +86,17 @@
 
   <script type="module">
     import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.module.js';
-    import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.147.0/examples/jsm/webxr/ARButton.js';
 
     let camera, scene, renderer;
     let controller, reticle, hitTestSource = null, hitTestSourceRequested = false;
     let videoTexture, videoPlane;
     let video;
 
-    // Expose to global scope
-    window.startAR = () => {
+    // Global access
+    window.startAR = async () => {
       document.getElementById('start-screen').style.display = 'none';
-      initAR();
+      await initAR();
+      await startARSession();
     };
 
     window.changeVideo = (src) => {
@@ -109,51 +109,55 @@
     };
 
     function initAR() {
-      // Prepare video
-      video = document.createElement('video');
-      video.src = 'assets/video/Video1.mp4';
-      video.loop = true;
-      video.muted = true;
-      video.playsInline = true;
-      video.crossOrigin = 'anonymous';
-      video.play();
+      return new Promise((resolve) => {
+        // Create video element
+        video = document.createElement('video');
+        video.src = 'assets/video/Video1.mp4';
+        video.loop = true;
+        video.muted = true;
+        video.playsInline = true;
+        video.crossOrigin = 'anonymous';
+        video.play();
 
-      // Scene setup
-      scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.xr.enabled = true;
-      document.body.appendChild(renderer.domElement);
+        // Scene and Renderer
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.xr.enabled = true;
+        document.body.appendChild(renderer.domElement);
 
-      // AR button with domOverlay support
-      const arButton = ARButton.createButton(renderer, {
+        // Video Plane
+        videoTexture = new THREE.VideoTexture(video);
+        const geometry = new THREE.PlaneGeometry(1, 0.56);
+        const material = new THREE.MeshBasicMaterial({ map: videoTexture });
+        videoPlane = new THREE.Mesh(geometry, material);
+        videoPlane.visible = false;
+        scene.add(videoPlane);
+
+        // Reticle
+        const ringGeo = new THREE.RingGeometry(0.05, 0.06, 32).rotateX(-Math.PI / 2);
+        const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        reticle = new THREE.Mesh(ringGeo, ringMat);
+        reticle.visible = false;
+        scene.add(reticle);
+
+        // Controller
+        controller = renderer.xr.getController(0);
+        controller.addEventListener('select', onSelect);
+        scene.add(controller);
+
+        renderer.setAnimationLoop(render);
+        resolve();
+      });
+    }
+
+    async function startARSession() {
+      const session = await navigator.xr.requestSession('immersive-ar', {
         requiredFeatures: ['hit-test', 'dom-overlay'],
         domOverlay: { root: document.getElementById('ar-overlay') }
       });
-      document.body.appendChild(arButton);
-
-      // Video plane
-      videoTexture = new THREE.VideoTexture(video);
-      const geometry = new THREE.PlaneGeometry(1, 0.56);
-      const material = new THREE.MeshBasicMaterial({ map: videoTexture });
-      videoPlane = new THREE.Mesh(geometry, material);
-      videoPlane.visible = false;
-      scene.add(videoPlane);
-
-      // Reticle
-      const ringGeo = new THREE.RingGeometry(0.05, 0.06, 32).rotateX(-Math.PI / 2);
-      const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-      reticle = new THREE.Mesh(ringGeo, ringMat);
-      reticle.visible = false;
-      scene.add(reticle);
-
-      // Controller for tap
-      controller = renderer.xr.getController(0);
-      controller.addEventListener('select', onSelect);
-      scene.add(controller);
-
-      renderer.setAnimationLoop(render);
+      renderer.xr.setSession(session);
     }
 
     function onSelect() {

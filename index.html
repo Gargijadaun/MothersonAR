@@ -431,292 +431,306 @@ a-scene {
   <script src="./js/man-ar.js"></script>
   <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
   <script src="https://code.jquery.com/ui/1.14.1/jquery-ui.js"></script>
-  <script>
-    let lastPlayedAudio = null;
-    let descriptionVisible = false;
-    let targetDetected = false;
-    let hasDetectedOnce = false; // New flag for one-time detection
-    let scale = 1, lastScale = 1, startX = 0, startY = 0, translateX = 0, translateY = 0;
-    const video = document.getElementById("fullScreenVideo");
-    const container = document.getElementById("videoZoomContainer");
-    let isDragging = false;
+<script>
+  let lastPlayedAudio = null;
+  let descriptionVisible = false;
+  let targetDetected = false;
+  let hasDetectedOnce = false; // Flag for one-time detection
+  let scale = 1, lastScale = 1, startX = 0, startY = 0, translateX = 0, translateY = 0;
+  const video = document.getElementById("fullScreenVideo");
+  const container = document.getElementById("videoZoomContainer");
+  let isDragging = false;
 
-    container.addEventListener("touchstart", (e) => {
-      if (e.touches.length === 2) {
-        lastScale = scale;
-      } else if (e.touches.length === 1) {
-        isDragging = true;
-        startX = e.touches[0].clientX - translateX;
-        startY = e.touches[0].clientY - translateY;
-      }
-    });
-    container.addEventListener("touchmove", (e) => {
-      e.preventDefault();
-      if (e.touches.length === 2) {
-        const dx = e.touches[0].clientX - e.touches[1].clientX;
-        const dy = e.touches[0].clientY - e.touches[1].clientY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        if (!container.startDist) container.startDist = distance;
-        scale = lastScale * (distance / container.startDist);
-        scale = Math.min(Math.max(1, scale), 4);
-        updateTransform();
-      } else if (e.touches.length === 1 && isDragging) {
-        translateX = e.touches[0].clientX - startX;
-        translateY = e.touches[0].clientY - startY;
-        updateTransform();
-      }
-    }, { passive: false });
-    container.addEventListener("touchend", () => {
-      isDragging = false;
-      container.startDist = null;
-    });
-    function updateTransform() {
-      video.style.transform = `scale(${scale}) translate(${translateX / scale}px, ${translateY / scale}px)`;
+  container.addEventListener("touchstart", (e) => {
+    if (e.touches.length === 2) {
+      lastScale = scale;
+    } else if (e.touches.length === 1) {
+      isDragging = true;
+      startX = e.touches[0].clientX - translateX;
+      startY = e.touches[0].clientY - translateY;
     }
-    function checkOrientation() {
-      const isPortrait = window.innerHeight > window.innerWidth;
-      const warning = document.getElementById("rotate-warning");
-      const mainScreen = document.getElementById("mainScreen");
-      const aScene = document.querySelector("a-scene");
-      const videoScreen = document.getElementById("videoScreen");
-      const videoPlayerScreen = document.getElementById("videoPlayerScreen");
-      const fullscreenbutton = document.getElementById("fullscreen-button");
-      if (isPortrait) {
-        fullscreenbutton.style.display = "none";
-        warning.style.display = "flex";
-        mainScreen.style.display = "none";
-        if (aScene) aScene.style.display = "none";
-        videoScreen.style.display = "none";
-        videoPlayerScreen.style.display = "none";
-      } else {
-        warning.style.display = "none";
-        mainScreen.style.display = mainScreen.classList.contains("active") ? "block" : "none";
-        if (aScene) {
-          aScene.style.display = "block";
-        }
-        videoScreen.style.display = videoScreen.classList.contains("active") ? "block" : "none";
-        videoPlayerScreen.style.display = videoPlayerScreen.classList.contains("active") ? "block" : "none";
-        fullscreenbutton.style.display = "block";
-      }
+  });
+
+  container.addEventListener("touchmove", (e) => {
+    e.preventDefault();
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      if (!container.startDist) container.startDist = distance;
+      scale = lastScale * (distance / container.startDist);
+      scale = Math.min(Math.max(1, scale), 4);
+      updateTransform();
+    } else if (e.touches.length === 1 && isDragging) {
+      translateX = e.touches[0].clientX - startX;
+      translateY = e.touches[0].clientY - startY;
+      updateTransform();
     }
-    function enterFullscreen() {
-      const elem = document.documentElement;
-      const requestFullscreen =
-        elem.requestFullscreen ||
-        elem.webkitRequestFullscreen ||
-        elem.msRequestFullscreen;
-      if (requestFullscreen) {
-        requestFullscreen.call(elem).finally(() => {
-          document.getElementById('fullscreen-button').classList.add('hide-important');
-          checkOrientation();
-        });
-      } else {
+  }, { passive: false });
+
+  container.addEventListener("touchend", () => {
+    isDragging = false;
+    container.startDist = null;
+  });
+
+  function updateTransform() {
+    video.style.transform = `scale(${scale}) translate(${translateX / scale}px, ${translateY / scale}px)`;
+  }
+
+  function checkOrientation() {
+    const isPortrait = window.innerHeight > window.innerWidth;
+    const warning = document.getElementById("rotate-warning");
+    const mainScreen = document.getElementById("mainScreen");
+    const aScene = document.querySelector("a-scene");
+    const videoScreen = document.getElementById("videoScreen");
+    const videoPlayerScreen = document.getElementById("videoPlayerScreen");
+    const fullscreenbutton = document.getElementById("fullscreen-button");
+    if (isPortrait) {
+      fullscreenbutton.style.display = "none";
+      warning.style.display = "flex";
+      mainScreen.style.display = "none";
+      if (aScene) aScene.style.display = "none";
+      videoScreen.style.display = "none";
+      videoPlayerScreen.style.display = "none";
+    } else {
+      warning.style.display = "none";
+      mainScreen.style.display = mainScreen.classList.contains("active") ? "block" : "none";
+      if (aScene) {
+        aScene.style.display = "block";
+      }
+      videoScreen.style.display = videoScreen.classList.contains("active") ? "block" : "none";
+      videoPlayerScreen.style.display = videoPlayerScreen.classList.contains("active") ? "block" : "none";
+      fullscreenbutton.style.display = "block";
+    }
+  }
+
+  function enterFullscreen() {
+    const elem = document.documentElement;
+    const requestFullscreen =
+      elem.requestFullscreen ||
+      elem.webkitRequestFullscreen ||
+      elem.msRequestFullscreen;
+    if (requestFullscreen) {
+      requestFullscreen.call(elem).finally(() => {
         document.getElementById('fullscreen-button').classList.add('hide-important');
         checkOrientation();
-      }
-    }
-    function continueWithoutAR() {
-      document.getElementById("mainScreen").style.display = "none";
-      document.getElementById("mainScreen").classList.remove("active");
-      document.getElementById("videoScreen").style.display = "block";
-      document.getElementById("videoScreen").classList.add("active");
-      document.querySelector(".back-btn").style.display = "block";
+      });
+    } else {
+      document.getElementById('fullscreen-button').classList.add('hide-important');
       checkOrientation();
     }
-    function toggleVoiceOver() {
-      const btn = document.getElementById("voiceToggleBtn");
-      const isMuted = lastPlayedAudio && lastPlayedAudio.muted;
-      if (isMuted) {
-        for (let i = 1; i <= 5; i++) {
-          const audio = document.getElementById(`audio${i}`);
-          if (audio) audio.muted = false;
-        }
-        btn.textContent = "Voice Over Off";
-        btn.style.backgroundColor = "#d32f2f";
-      } else {
-        for (let i = 1; i <= 5; i++) {
-          const audio = document.getElementById(`audio${i}`);
-          if (audio) audio.muted = true;
-        }
-        btn.textContent = "Voice Over On";
-        btn.style.backgroundColor = "#018fbf";
+  }
+
+  function continueWithoutAR() {
+    document.getElementById("mainScreen").style.display = "none";
+    document.getElementById("mainScreen").classList.remove("active");
+    document.getElementById("videoScreen").style.display = "block";
+    document.getElementById("videoScreen").classList.add("active");
+    document.querySelector(".back-btn").style.display = "block";
+    checkOrientation();
+  }
+
+  function toggleVoiceOver() {
+    const btn = document.getElementById("voiceToggleBtn");
+    const isMuted = lastPlayedAudio && lastPlayedAudio.muted;
+    if (isMuted) {
+      for (let i = 1; i <= 5; i++) {
+        const audio = document.getElementById(`audio${i}`);
+        if (audio) audio.muted = false;
       }
-    }
-    function toggleDescription() {
-      const btn = document.getElementById("descToggleBtn");
-      const bottomText = document.querySelector(".bottom-text");
-      if (!targetDetected) return;
-      descriptionVisible = !descriptionVisible;
-      btn.textContent = descriptionVisible ? "Description Off" : "Description On";
-      btn.style.backgroundColor = descriptionVisible ? "#d32f2f" : "#018fbf";
-      bottomText.style.display = descriptionVisible ? "block" : "none";
-    }
-    function playVideo(videoSrc, audioSrc = null) {
-      const video = document.getElementById("fullScreenVideo");
-      const audio = document.getElementById("videoAudio");
-      video.src = videoSrc;
-      video.play();
-      if (audioSrc) {
-        audio.src = audioSrc;
-        audio.play();
-      } else {
-        audio.pause();
-        audio.currentTime = 0;
+      btn.textContent = "Voice Over Off";
+      btn.style.backgroundColor = "#d32f2f";
+    } else {
+      for (let i = 1; i <= 5; i++) {
+        const audio = document.getElementById(`audio${i}`);
+        if (audio) audio.muted = true;
       }
-      document.getElementById("videoScreen").style.display = "none";
-      document.getElementById("videoScreen").classList.remove("active");
-      document.getElementById("videoPlayerScreen").style.display = "block";
-      document.getElementById("videoPlayerScreen").classList.add("active");
-      checkOrientation();
+      btn.textContent = "Voice Over On";
+      btn.style.backgroundColor = "#018fbf";
     }
-    function toggleARVideoPlayPause() {
-      const mainVideoEl = document.querySelector("#mainVideo");
-      const playPauseText = document.querySelector("#playPauseText");
-      const btn = document.getElementById("arPlayPauseBtn1");
-      if (mainVideoEl.paused) {
-        mainVideoEl.play();
-        playPauseText.setAttribute("value", "Pause");
-        btn.textContent = "Pause";
-        btn.style.backgroundColor = "#018fbf";
-        if (lastPlayedAudio) {
-          lastPlayedAudio.play().catch(err => console.warn("Audio resume error:", err));
-        }
-      } else {
-        mainVideoEl.pause();
-        playPauseText.setAttribute("value", "Play");
-        btn.textContent = "Play";
-        btn.style.backgroundColor = "#d32f2f";
-        if (lastPlayedAudio && !lastPlayedAudio.paused) {
-          lastPlayedAudio.pause();
-        }
-      }
-    }
-    function backToVideoScreen() {
-      const video = document.getElementById("fullScreenVideo");
-      const audio = document.getElementById("videoAudio");
-      video.pause();
-      video.src = "";
+  }
+
+  function toggleDescription() {
+    const btn = document.getElementById("descToggleBtn");
+    const bottomText = document.querySelector(".bottom-text");
+    if (!targetDetected && !hasDetectedOnce) return; // Only allow toggle if target is detected or was detected once
+    descriptionVisible = !descriptionVisible;
+    btn.textContent = descriptionVisible ? "Description Off" : "Description On";
+    btn.style.backgroundColor = descriptionVisible ? "#d32f2f" : "#018fbf";
+    bottomText.style.display = descriptionVisible ? "block" : "none";
+  }
+
+  function playVideo(videoSrc, audioSrc = null) {
+    const video = document.getElementById("fullScreenVideo");
+    const audio = document.getElementById("videoAudio");
+    video.src = videoSrc;
+    video.play();
+    if (audioSrc) {
+      audio.src = audioSrc;
+      audio.play();
+    } else {
       audio.pause();
       audio.currentTime = 0;
-      scale = 1;
-      lastScale = 1;
-      translateX = 0;
-      translateY = 0;
-      updateTransform();
-      document.getElementById("videoPlayerScreen").style.display = "none";
-      document.getElementById("videoPlayerScreen").classList.remove("active");
-      document.getElementById("videoScreen").style.display = "block";
-      document.getElementById("videoScreen").classList.add("active");
-      checkOrientation();
     }
-    function playAllVideos() {
-      const videos = [
-        'assets/video/Video1.mp4',
-        'assets/video/Video2.mp4',
-        'assets/video/Video3.mp4',
-        'assets/video/Video4.mp4',
-        'assets/video/Video5.mp4'
-      ];
-      let index = 0;
-      const videoElement = document.getElementById('fullScreenVideo');
-      function playNext() {
-        if (index < videos.length) {
-          videoElement.src = videos[index];
-          videoElement.play();
-          index++;
-          videoElement.onended = playNext;
-        } else {
-          backToVideoScreen();
-        }
+    document.getElementById("videoScreen").style.display = "none";
+    document.getElementById("videoScreen").classList.remove("active");
+    document.getElementById("videoPlayerScreen").style.display = "block";
+    document.getElementById("videoPlayerScreen").classList.add("active");
+    checkOrientation();
+  }
+
+  function toggleARVideoPlayPause() {
+    const mainVideoEl = document.querySelector("#mainVideo");
+    const playPauseText = document.querySelector("#playPauseText");
+    const btn = document.getElementById("arPlayPauseBtn1");
+    if (mainVideoEl.paused) {
+      mainVideoEl.play();
+      playPauseText.setAttribute("value", "Pause");
+      btn.textContent = "Pause";
+      btn.style.backgroundColor = "#018fbf";
+      if (lastPlayedAudio) {
+        lastPlayedAudio.play().catch(err => console.warn("Audio resume error:", err));
       }
-      document.getElementById("videoScreen").style.display = "none";
-      document.getElementById("videoScreen").classList.remove("active");
-      document.getElementById("videoPlayerScreen").style.display = "block";
-      document.getElementById("videoPlayerScreen").classList.add("active");
-      playNext();
-    }
-    function playARVideo(videoId) {
-      descriptionVisible = false;
-      const videoEl = document.querySelector(`#${videoId}`);
-      const mainVideoEl = document.querySelector("#mainVideo");
-      const displayVideo = document.querySelector("#displayVideo");
-      const arBackBtn = document.querySelector("#arBackBtn");
-      const arBackBtn1 = document.querySelector("#arBackBtn1");
-      const arPlayPauseBtn1 = document.getElementById("arPlayPauseBtn1");
-      const playPauseText = document.querySelector("#playPauseText");
-      const buttons = [
-        document.querySelector('#btn1'),
-        document.querySelector('#btn2'),
-        document.querySelector('#btn3'),
-        document.querySelector('#btn4'),
-        document.querySelector('#btn5')
-      ];
+    } else {
       mainVideoEl.pause();
-      mainVideoEl.removeAttribute("src");
-      mainVideoEl.load();
-      stopAllAudio();
-      mainVideoEl.src = videoEl.src;
-      mainVideoEl.load();
-      mainVideoEl.muted = false;
-      mainVideoEl.onloadeddata = () => {
-        mainVideoEl.play().then(() => {
-          displayVideo.setAttribute("visible", "true");
-          playPauseText.setAttribute("value", "Pause");
-          arPlayPauseBtn1.textContent = "Pause";
-          arPlayPauseBtn1.style.backgroundColor = "#018fbf";
-          arBackBtn.setAttribute("visible", "false");
-          arBackBtn1.style.display = "block";
-          document.querySelector("#arPlayPauseBtn1").style.display = "block";
-          document.getElementById("voiceToggleBtn").style.display = "block";
-          document.getElementById("descToggleBtn").style.display = "block";
-          document.getElementById("voiceToggleBtn").textContent = "Voice Over Off";
-          document.getElementById("voiceToggleBtn").style.backgroundColor = "#d32f2f";
-          document.querySelector(".bottom-text").style.display = "none";
-          document.getElementById("descToggleBtn").textContent = "Description On";
-          document.getElementById("descToggleBtn").style.backgroundColor = "#018fbf";
-          buttons.forEach(btn => btn.setAttribute("visible", "false"));
-          document.querySelector("#arPlayPauseBtn").setAttribute("visible", "false");
-          playAssociatedAudio(videoId);
-          updateBottomText(videoId);
-        }).catch(err => {
-          console.error("Video playback error:", err);
-        });
-      };
+      playPauseText.setAttribute("value", "Play");
+      btn.textContent = "Play";
+      btn.style.backgroundColor = "#d32f2f";
+      if (lastPlayedAudio && !lastPlayedAudio.paused) {
+        lastPlayedAudio.pause();
+      }
     }
-    function updateBottomText(videoId) {
-      const heading = document.getElementById("bottomHeading");
-      const description = document.getElementById("bottomDescription");
-      switch (videoId) {
-        case "video1":
-          heading.textContent = "True 4K Colour with Fluorescence";
-          description.textContent = `Visualise the surgical field in unparalleled clarity and superior resolution. 
+  }
+
+  function backToVideoScreen() {
+    const video = document.getElementById("fullScreenVideo");
+    const audio = document.getElementById("videoAudio");
+    video.pause();
+    video.src = "";
+    audio.pause();
+    audio.currentTime = 0;
+    scale = 1;
+    lastScale = 1;
+    translateX = 0;
+    translateY = 0;
+    updateTransform();
+    document.getElementById("videoPlayerScreen").style.display = "none";
+    document.getElementById("videoPlayerScreen").classList.remove("active");
+    document.getElementById("videoScreen").style.display = "block";
+    document.getElementById("videoScreen").classList.add("active");
+    checkOrientation();
+  }
+
+  function playAllVideos() {
+    const videos = [
+      'assets/video/Video1.mp4',
+      'assets/video/Video2.mp4',
+      'assets/video/Video3.mp4',
+      'assets/video/Video4.mp4',
+      'assets/video/Video5.mp4'
+    ];
+    let index = 0;
+    const videoElement = document.getElementById('fullScreenVideo');
+    function playNext() {
+      if (index < videos.length) {
+        videoElement.src = videos[index];
+        videoElement.play();
+        index++;
+        videoElement.onended = playNext;
+      } else {
+        backToVideoScreen();
+      }
+    }
+    document.getElementById("videoScreen").style.display = "none";
+    document.getElementById("videoScreen").classList.remove("active");
+    document.getElementById("videoPlayerScreen").style.display = "block";
+    document.getElementById("videoPlayerScreen").classList.add("active");
+    playNext();
+  }
+
+  function playARVideo(videoId) {
+    descriptionVisible = false;
+    const videoEl = document.querySelector(`#${videoId}`);
+    const mainVideoEl = document.querySelector("#mainVideo");
+    const displayVideo = document.querySelector("#displayVideo");
+    const arBackBtn = document.querySelector("#arBackBtn");
+    const arBackBtn1 = document.querySelector("#arBackBtn1");
+    const arPlayPauseBtn1 = document.getElementById("arPlayPauseBtn1");
+    const playPauseText = document.querySelector("#playPauseText");
+    const buttons = [
+      document.querySelector('#btn1'),
+      document.querySelector('#btn2'),
+      document.querySelector('#btn3'),
+      document.querySelector('#btn4'),
+      document.querySelector('#btn5')
+    ];
+    mainVideoEl.pause();
+    mainVideoEl.removeAttribute("src");
+    mainVideoEl.load();
+    stopAllAudio();
+    mainVideoEl.src = videoEl.src;
+    mainVideoEl.load();
+    mainVideoEl.muted = false;
+    mainVideoEl.onloadeddata = () => {
+      mainVideoEl.play().then(() => {
+        displayVideo.setAttribute("visible", "true");
+        playPauseText.setAttribute("value", "Pause");
+        arPlayPauseBtn1.textContent = "Pause";
+        arPlayPauseBtn1.style.backgroundColor = "#018fbf";
+        arBackBtn.setAttribute("visible", "false");
+        arBackBtn1.style.display = "block";
+        document.querySelector("#arPlayPauseBtn1").style.display = "block";
+        document.getElementById("voiceToggleBtn").style.display = "block";
+        document.getElementById("descToggleBtn").style.display = "block";
+        document.getElementById("voiceToggleBtn").textContent = "Voice Over Off";
+        document.getElementById("voiceToggleBtn").style.backgroundColor = "#d32f2f";
+        document.querySelector(".bottom-text").style.display = "none";
+        document.getElementById("descToggleBtn").textContent = "Description On";
+        document.getElementById("descToggleBtn").style.backgroundColor = "#018fbf";
+        buttons.forEach(btn => btn.setAttribute("visible", "false"));
+        document.querySelector("#arPlayPauseBtn").setAttribute("visible", "false");
+        playAssociatedAudio(videoId);
+        updateBottomText(videoId);
+      }).catch(err => {
+        console.error("Video playback error:", err);
+      });
+    };
+  }
+
+  function updateBottomText(videoId) {
+    const heading = document.getElementById("bottomHeading");
+    const description = document.getElementById("bottomDescription");
+    switch (videoId) {
+      case "video1":
+        heading.textContent = "True 4K Colour with Fluorescence";
+        description.textContent = `Visualise the surgical field in unparalleled clarity and superior resolution. 
 Augment your colour vision with ICG fluorescence overlay and multiple imaging modes.
 • Enhanced Bile Duct Visualisation
 • Real-time Tissue perfusion & Precise Nodal Dissection
 • Intra-Operative Ureteral Identification`;
-          break;
-        case "video2":
-          heading.textContent = "Multiple Feed Views";
-          description.textContent = `Built-in Feed Customisations that allow 
+        break;
+      case "video2":
+        heading.textContent = "Multiple Feed Views";
+        description.textContent = `Built-in Feed Customisations that allow 
 enhanced visualisation experiences for 
 monitoring different phases of surgery.
  • Depth Contrast Mode
  • Raw Infrared Feed PIP
  • RGB Fluorescence Profiles`;
-          break;
-        case "video3":
-          heading.textContent = "Powerful LED Source with AMVI";
-          description.textContent = `Durable, high-power LED sources provide 
+        break;
+      case "video3":
+        heading.textContent = "Powerful LED Source with AMVI";
+        description.textContent = `Durable, high-power LED sources provide 
 optimal light for all telescopes, with 
 AMVI activation enhancing contrast in 
 fine patterns and sub-mucosal capillary 
 structures.
  • Visualise abnormal vasculature
  • Enable targeted biopsy of lesions`;
-          break;
-        case "video4":
-          heading.textContent = "IntelliQuant Dashboard";
-          description.textContent = ` An industry-first tool for Quantitative 
+        break;
+      case "video4":
+        heading.textContent = "IntelliQuant Dashboard";
+        description.textContent = ` An industry-first tool for Quantitative 
 Assessment of Fluorescence Intensity 
 with Laparoscopic Surgery with Live 
 Fluorescence Contours.
@@ -725,10 +739,10 @@ Anastomosis in real-time.
 • Differentiate between Fluorescence 
 Shadows and Signal using Live 
 Contours`;
-          break;
-        case "video5":
-          heading.textContent = " Fully Customisable Colour";
-          description.textContent = ` 10 bit Colour with Advanced 24 Axis 
+        break;
+      case "video5":
+        heading.textContent = " Fully Customisable Colour";
+        description.textContent = ` 10 bit Colour with Advanced 24 Axis 
 Colour Calibration Options improve 
 differentiation between key anatomical 
 features as per personalized preferences.
@@ -736,131 +750,141 @@ features as per personalized preferences.
  • 3 Fully-Customizable Colour 
 Profiles for saving individual 
 preferences.`;
-          break;
-        default:
-          heading.textContent = "";
-          description.textContent = "";
+        break;
+      default:
+        heading.textContent = "";
+        description.textContent = "";
+    }
+  }
+
+  function stopAllAudio() {
+    for (let i = 1; i <= 5; i++) {
+      const audio = document.getElementById(`audio${i}`);
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
       }
     }
-    function stopAllAudio() {
-      for (let i = 1; i <= 5; i++) {
-        const audio = document.getElementById(`audio${i}`);
-        if (audio) {
-          audio.pause();
-          audio.currentTime = 0;
-        }
-      }
-    }
-    function playAssociatedAudio(videoId) {
-      const audioMap = {
-        "video1": "audio1",
-        "video2": "audio2",
-        "video3": "audio3",
-        "video4": "audio4",
-        "video5": "audio5"
-      };
-      const audioId = audioMap[videoId];
-      if (audioId) {
-        const audio = document.getElementById(audioId);
-        if (audio) {
-          lastPlayedAudio = audio;
-          audio.muted = false;
-          audio.currentTime = 0;
-          audio.play().catch(err => {
-            console.warn("Audio playback blocked:", err);
-            setTimeout(() => audio.play().catch(e => console.error("Retry failed:", e)), 100);
-          });
-        } else {
-          console.error(`Audio element ${audioId} not found`);
-        }
+  }
+
+  function playAssociatedAudio(videoId) {
+    const audioMap = {
+      "video1": "audio1",
+      "video2": "audio2",
+      "video3": "audio3",
+      "video4": "audio4",
+      "video5": "audio5"
+    };
+    const audioId = audioMap[videoId];
+    if (audioId) {
+      const audio = document.getElementById(audioId);
+      if (audio) {
+        lastPlayedAudio = audio;
+        audio.muted = false;
+        audio.currentTime = 0;
+        audio.play().catch(err => {
+          console.warn("Audio playback blocked:", err);
+          setTimeout(() => audio.play().catch(e => console.error("Retry failed:", e)), 100);
+        });
       } else {
-        console.error(`No audio mapped for videoId: ${videoId}`);
+        console.error(`Audio element ${audioId} not found`);
       }
+    } else {
+      console.error(`No audio mapped for videoId: ${videoId}`);
     }
-    function backToARButtons() {
-      const displayVideo = document.querySelector("#displayVideo");
-      const arBackBtn = document.querySelector("#arBackBtn");
-      const arBackBtn1 = document.querySelector("#arBackBtn1");
-      descriptionVisible = false;
-      document.getElementById("descToggleBtn").textContent = "Description On";
-      document.querySelector(".bottom-text").style.display = "none";
-      const buttons = [
-        document.querySelector('#btn1'),
-        document.querySelector('#btn2'),
-        document.querySelector('#btn3'),
-        document.querySelector('#btn4'),
-        document.querySelector('#btn5')
-      ];
-      stopAllAudio();
-      displayVideo.setAttribute("visible", "false");
-      displayVideo.pause();
-      arBackBtn.setAttribute("visible", "false");
-      arBackBtn1.style.display ="none";
-      document.querySelector("#arPlayPauseBtn1").style.display ="none";
-      document.querySelector("#voiceToggleBtn").style.display ="none";
-      document.querySelector("#descToggleBtn").style.display ="none";
-      document.querySelector("#arPlayPauseBtn").setAttribute("visible", "false");
-      buttons.forEach(btn => btn.setAttribute('visible', 'true')); // Always show buttons after initial detection
-    }
-    document.addEventListener('DOMContentLoaded', () => {
-      const scene = document.querySelector('a-scene');
-      scene.addEventListener('loaded', () => {
-      });
-      const target = document.querySelector('#targetImage');
-      const buttons = [
-        document.querySelector('#btn1'),
-        document.querySelector('#btn2'),
-        document.querySelector('#btn3'),
-        document.querySelector('#btn4'),
-        document.querySelector('#btn5')
-      ];
-      const displayVideo = document.querySelector('#displayVideo');
-      const arBackBtn = document.querySelector('#arBackBtn');
-      const arBackBtn1 = document.querySelector('#arBackBtn1');
-      target.addEventListener('targetFound', () => {
-        targetDetected = true;
-        if (!hasDetectedOnce) { // Only execute on first detection
-          hasDetectedOnce = true;
-          buttons.forEach(btn => btn.setAttribute('visible', 'true'));
-          displayVideo.setAttribute('visible', 'false');
-          arBackBtn.setAttribute('visible', 'false');
-          document.querySelector("#arPlayPauseBtn").setAttribute("visible", "false");
-          arBackBtn1.style.display ="none";
-          document.querySelector("#arPlayPauseBtn1").style.display ="none";
-          document.getElementById("voiceToggleBtn").style.display = "none";
-          document.getElementById("descToggleBtn").style.display = "none";
-          if (descriptionVisible) {
-            document.querySelector(".bottom-text").style.display = "none";
-          }
-        }
-      });
-      target.addEventListener('targetLost', () => {
-        targetDetected = false;
-        stopAllAudio();
+  }
+
+  function backToARButtons() {
+    const displayVideo = document.querySelector("#displayVideo");
+    const arBackBtn = document.querySelector("#arBackBtn");
+    const arBackBtn1 = document.querySelector("#arBackBtn1");
+    descriptionVisible = false;
+    document.getElementById("descToggleBtn").textContent = "Description On";
+    document.querySelector(".bottom-text").style.display = "none";
+    const buttons = [
+      document.querySelector('#btn1'),
+      document.querySelector('#btn2'),
+      document.querySelector('#btn3'),
+      document.querySelector('#btn4'),
+      document.querySelector('#btn5')
+    ];
+    stopAllAudio();
+    displayVideo.setAttribute("visible", "false");
+    displayVideo.pause();
+    arBackBtn.setAttribute("visible", "false");
+    arBackBtn1.style.display ="none";
+    document.querySelector("#arPlayPauseBtn1").style.display ="none";
+    document.querySelector("#voiceToggleBtn").style.display ="none";
+    document.querySelector("#descToggleBtn").style.display ="none";
+    document.querySelector("#arPlayPauseBtn").setAttribute("visible", "false");
+    buttons.forEach(btn => btn.setAttribute('visible', 'true')); // Always show buttons after initial detection
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const scene = document.querySelector('a-scene');
+    scene.addEventListener('loaded', () => {
+    });
+    const target = document.querySelector('#targetImage');
+    const buttons = [
+      document.querySelector('#btn1'),
+      document.querySelector('#btn2'),
+      document.querySelector('#btn3'),
+      document.querySelector('#btn4'),
+      document.querySelector('#btn5')
+    ];
+    const displayVideo = document.querySelector('#displayVideo');
+    const arBackBtn = document.querySelector('#arBackBtn');
+    const arBackBtn1 = document.querySelector('#arBackBtn1');
+
+    target.addEventListener('targetFound', () => {
+      targetDetected = true;
+      if (!hasDetectedOnce) { // Only execute on first detection
+        hasDetectedOnce = true;
+        buttons.forEach(btn => btn.setAttribute('visible', 'true'));
         displayVideo.setAttribute('visible', 'false');
-        displayVideo.pause();
         arBackBtn.setAttribute('visible', 'false');
         document.querySelector("#arPlayPauseBtn").setAttribute("visible", "false");
         arBackBtn1.style.display ="none";
         document.querySelector("#arPlayPauseBtn1").style.display ="none";
         document.getElementById("voiceToggleBtn").style.display = "none";
         document.getElementById("descToggleBtn").style.display = "none";
-        document.querySelector(".bottom-text").style.display = "none";
-        // Buttons remain visible after initial detection
-      });
+        if (descriptionVisible) {
+          document.querySelector(".bottom-text").style.display = "none";
+        }
+      }
     });
-    window.addEventListener("load", () => {
-      document.getElementById("fullscreen-button").style.display = "none";
-      document.getElementById("mainScreen").classList.add("active");
-      checkOrientation();
-      const voiceToggleBtn = document.getElementById("voiceToggleBtn");
-      voiceToggleBtn.style.backgroundColor = "#018fbf";
-      voiceToggleBtn.textContent = "Voice Over On";
-      document.getElementById("descToggleBtn").style.backgroundColor = "#018fbf";
-      document.getElementById("arPlayPauseBtn1").style.backgroundColor = "#018fbf";
+
+    target.addEventListener('targetLost', () => {
+      targetDetected = false;
+      stopAllAudio();
+      displayVideo.setAttribute('visible', 'false');
+      displayVideo.pause();
+      arBackBtn.setAttribute('visible', 'false');
+      document.querySelector("#arPlayPauseBtn").setAttribute("visible", "false");
+      arBackBtn1.style.display ="none";
+      document.querySelector("#arPlayPauseBtn1").style.display ="none";
+      document.getElementById("voiceToggleBtn").style.display = "none";
+      document.getElementById("descToggleBtn").style.display = "none";
+      document.querySelector(".bottom-text").style.display = "none";
+      if (hasDetectedOnce) { // Keep buttons visible after initial detection
+        buttons.forEach(btn => btn.setAttribute('visible', 'true'));
+      }
     });
-    window.addEventListener("resize", checkOrientation);
-    window.addEventListener("orientationchange", () => setTimeout(checkOrientation, 200));
-  </script>
+  });
+
+  window.addEventListener("load", () => {
+    document.getElementById("fullscreen-button").style.display = "none";
+    document.getElementById("mainScreen").classList.add("active");
+    checkOrientation();
+    const voiceToggleBtn = document.getElementById("voiceToggleBtn");
+    voiceToggleBtn.style.backgroundColor = "#018fbf";
+    voiceToggleBtn.textContent = "Voice Over On";
+    document.getElementById("descToggleBtn").style.backgroundColor = "#018fbf";
+    document.getElementById("arPlayPauseBtn1").style.backgroundColor = "#018fbf";
+  });
+
+  window.addEventListener("resize", checkOrientation);
+  window.addEventListener("orientationchange", () => setTimeout(checkOrientation, 200));
+</script>
 </body>
 </html>

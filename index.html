@@ -1,192 +1,75 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>AR Video Player</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    body { margin: 0; overflow: hidden; font-family: sans-serif; }
+<html>
+  <head>
+    <title>Plane Detection AR Video</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-ar-hit-test@1.1.1/dist/aframe-ar-hit-test.min.js"></script>
+  </head>
 
-    #start-screen {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      background: #000000cc;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      z-index: 10;
-    }
+  <body style="margin: 0; overflow: hidden;">
+    <a-scene
+      webxr="optionalFeatures: hit-test;"
+      vr-mode-ui="enabled: false"
+      ar-hit-test="target: #videoPlane"
+      embedded
+      renderer="colorManagement: true; physicallyCorrectLights: true;"
+    >
+      <!-- Assets -->
+      <a-assets>
+        <video id="videoAsset" src="./assets/video/Video1.mp4" loop playsinline crossorigin="anonymous"></video>
+      </a-assets>
 
-    #start-screen button {
-      padding: 15px 30px;
-      margin: 10px;
-      font-size: 18px;
-      cursor: pointer;
-    }
+      <!-- AR Camera -->
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    #ar-overlay {
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      pointer-events: none;
-      z-index: 5;
-    }
+      <!-- Video Plane (Initially Hidden) -->
+      <a-video
+        id="videoPlane"
+        src="#videoAsset"
+        width="1"
+        height="0.56"
+        rotation="-90 0 0"
+        visible="false"
+      ></a-video>
 
-    #video-buttons {
-      position: absolute;
-      bottom: 20px;
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      pointer-events: auto;
-      display: none;
-    }
+      <!-- Reticle (Hit test indicator) -->
+      <a-entity
+        id="reticle"
+        ar-hit-test-target
+        geometry="primitive: ring; radiusInner: 0.05; radiusOuter: 0.07;"
+        material="color: yellow; shader: flat"
+        position="0 0 0"
+        rotation="-90 0 0"
+        visible="false"
+      ></a-entity>
+    </a-scene>
 
-    #video-buttons button {
-      padding: 10px 15px;
-      font-size: 14px;
-      background: rgba(0, 0, 0, 0.7);
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
+    <script>
+      const videoPlane = document.getElementById('videoPlane');
+      const video = document.getElementById('videoAsset');
+      const scene = document.querySelector('a-scene');
+      const reticle = document.getElementById('reticle');
 
-    video { display: none; }
-  </style>
-</head>
-<body>
-  <div id="start-screen">
-    <button onclick="startAR()">Start AR</button>
-    <button onclick="window.location.href='video.html'">Non-AR</button>
-  </div>
-
-  <div id="ar-overlay">
-    <div id="video-buttons">
-      <button onclick="changeVideo('assets/video/Video1.mp4')">Video 1</button>
-      <button onclick="changeVideo('assets/video/Video2.mp4')">Video 2</button>
-      <button onclick="changeVideo('assets/video/Video3.mp4')">Video 3</button>
-      <button onclick="changeVideo('assets/video/Video4.mp4')">Video 4</button>
-      <button onclick="changeVideo('assets/video/Video5.mp4')">Video 5</button>
-    </div>
-  </div>
-
-  <script type="module">
-    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.module.js';
-
-    let camera, scene, renderer;
-    let controller, reticle, hitTestSource = null;
-    let videoPlane, videoTexture, video;
-    let selectedVideo = 'assets/video/Video1.mp4';
-    let referenceSpace = null;
-
-    window.startAR = async () => {
-      document.getElementById('start-screen').style.display = 'none';
-
-      await initAR();
-      await startARSession();
-
-      document.getElementById('video-buttons').style.display = 'flex';
-    };
-
-    window.changeVideo = (src) => {
-      selectedVideo = src;
-      if (video) {
-        video.pause();
-        video.src = src;
-        video.load();
-        video.play().catch(console.error);
-        if (videoTexture) videoTexture.needsUpdate = true;
-      }
-    };
-
-    async function initAR() {
-      // Setup video element
-      video = document.createElement('video');
-      video.src = selectedVideo;
-      video.loop = true;
-      video.muted = true;
-      video.playsInline = true;
-      video.crossOrigin = 'anonymous';
-
-      // Setup scene
-      scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
-
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.xr.enabled = true;
-      document.body.appendChild(renderer.domElement);
-
-      // Video plane
-      videoTexture = new THREE.VideoTexture(video);
-      const geometry = new THREE.PlaneGeometry(1, 0.56);
-      const material = new THREE.MeshBasicMaterial({ map: videoTexture });
-      videoPlane = new THREE.Mesh(geometry, material);
-      videoPlane.visible = false;
-      scene.add(videoPlane);
-
-      // Reticle
-      const ringGeo = new THREE.RingGeometry(0.05, 0.06, 32).rotateX(-Math.PI / 2);
-      const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-      reticle = new THREE.Mesh(ringGeo, ringMat);
-      reticle.visible = false;
-      reticle.matrixAutoUpdate = false;
-      scene.add(reticle);
-
-      // Controller
-      controller = renderer.xr.getController(0);
-      controller.addEventListener('select', onSelect);
-      scene.add(controller);
-
-      renderer.setAnimationLoop(render);
-    }
-
-    async function startARSession() {
-      const session = await navigator.xr.requestSession('immersive-ar', {
-        requiredFeatures: ['hit-test', 'dom-overlay'],
-        domOverlay: { root: document.getElementById('ar-overlay') }
-      });
-
-      renderer.xr.setSession(session);
-
-      referenceSpace = await session.requestReferenceSpace('local');
-      const viewerSpace = await session.requestReferenceSpace('viewer');
-      hitTestSource = await session.requestHitTestSource({ space: viewerSpace });
-
-      session.addEventListener('end', () => {
-        hitTestSource = null;
-      });
-    }
-
-    function onSelect() {
-      if (reticle.visible) {
-        videoPlane.visible = true;
-        videoPlane.position.setFromMatrixPosition(reticle.matrix);
-        videoPlane.quaternion.setFromRotationMatrix(reticle.matrix);
-        video.play().catch(console.error);
-      }
-    }
-
-    function render(_, frame) {
-      if (frame && hitTestSource) {
-        const hitTestResults = frame.getHitTestResults(hitTestSource);
-
-        if (hitTestResults.length > 0) {
-          const hit = hitTestResults[0];
-          const pose = hit.getPose(referenceSpace);
-
-          reticle.visible = true;
-          reticle.matrix.fromArray(pose.transform.matrix);
-        } else {
-          reticle.visible = false;
+      // Show reticle when hit test finds surface
+      scene.addEventListener('ar-hit-test-select', function () {
+        if (!videoPlane.getAttribute('visible')) {
+          // Place video on the surface
+          const position = reticle.getAttribute('position');
+          videoPlane.setAttribute('position', position);
+          videoPlane.setAttribute('visible', true);
+          video.play();
         }
-      }
+      });
 
-      renderer.render(scene, camera);
-    }
-  </script>
-</body>
+      // Reticle visibility control
+      scene.addEventListener('ar-hit-test-available', () => {
+        reticle.setAttribute('visible', true);
+      });
+
+      scene.addEventListener('ar-hit-test-unavailable', () => {
+        reticle.setAttribute('visible', false);
+      });
+    </script>
+  </body>
 </html>

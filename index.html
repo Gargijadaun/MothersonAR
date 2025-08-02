@@ -22,26 +22,43 @@ Licensed under the MIT License.
         background: rgba(0, 0, 0, 0.5);
         color: white;
         padding: 10px;
-      }
-      .back {
-        color: #0af;
+        text-align: center;
       }
       button {
         padding: 10px;
         font-size: 16px;
+        cursor: pointer;
+      }
+      #video-controls {
+        display: none;
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.7);
+        padding: 10px;
+        border-radius: 5px;
+      }
+      #video-controls button {
+        margin: 0 5px;
+        background: #0af;
+        color: white;
+        border: none;
+        border-radius: 3px;
       }
     </style>
   </head>
   <body>
     <header>
-      <details open>
-        <summary>AR Video Playback</summary>
-        <p>
-          Tap to place a small video on a detected surface, positioned farther away.
-          <a class="back" href="./">Back</a>
-        </p>
-      </details>
+      <button id="start-ar">START AR</button>
     </header>
+    <div id="video-controls">
+      <button onclick="changeVideo(1)">Video 1</button>
+      <button onclick="changeVideo(2)">Video 2</button>
+      <button onclick="changeVideo(3)">Video 3</button>
+      <button onclick="changeVideo(4)">Video 4</button>
+      <button onclick="changeVideo(5)">Video 5</button>
+    </div>
     <script type="module">
       import {Scene} from './js/render/scenes/scene.js';
       import {Renderer, createWebGLContext} from './js/render/core/renderer.js';
@@ -63,9 +80,9 @@ Licensed under the MIT License.
 
       // Video element
       let video = document.createElement('video');
-      video.src = './media/video/Video1.mp4'; // Replace with your video path
+      video.src = './media/video/Video1.mp4'; // Default video
       video.loop = true;
-      video.muted = false; // Set to false to allow sound (user interaction required)
+      video.muted = false; // Sound enabled (requires user interaction)
       let videoNode = null;
 
       // Reticle for hit-test visualization (simple quad)
@@ -91,7 +108,7 @@ Licensed under the MIT License.
           ];
           let primitive = new Primitive(attribs, indices.length);
           primitive.setIndexBuffer(indexBuffer);
-          let material = new VideoMaterial(); // Reuse VideoMaterial for simplicity
+          let material = new VideoMaterial(); // Reuse VideoMaterial
           material.image.texture = renderer.createTexture({ source: createReticleTexture() });
           let renderPrimitive = renderer.createRenderPrimitive(primitive, material);
           reticle.addRenderPrimitive(renderPrimitive);
@@ -112,13 +129,13 @@ Licensed under the MIT License.
 
       function initXR() {
         xrButton = {
-          domElement: document.createElement('button'),
+          domElement: document.getElementById('start-ar'),
           enabled: false,
           setSession: (session) => {
             xrButton.domElement.textContent = session ? 'EXIT AR' : 'START AR';
+            xrButton.domElement.style.display = session ? 'none' : 'block';
           }
         };
-        xrButton.domElement.textContent = 'START AR';
         xrButton.domElement.onclick = () => {
           if (xrButton.domElement.textContent === 'START AR') {
             onRequestSession();
@@ -126,7 +143,6 @@ Licensed under the MIT License.
             onEndSession();
           }
         };
-        document.querySelector('header').appendChild(xrButton.domElement);
 
         if (navigator.xr) {
           navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
@@ -177,16 +193,18 @@ Licensed under the MIT License.
         }
         xrButton.setSession(null);
         video.pause();
+        document.getElementById('video-controls').style.display = 'none';
       }
 
       function onSessionEnded() {
         xrButton.setSession(null);
         video.pause();
+        document.getElementById('video-controls').style.display = 'none';
       }
 
       function onSelect() {
         if (reticle.visible && !videoNode) {
-          // Create a VideoNode with the video element
+          // Create a VideoNode with the current video element
           videoNode = new VideoNode({ video: video, displayMode: 'mono' });
           videoNode.visible = true;
 
@@ -194,7 +212,7 @@ Licensed under the MIT License.
           let matrix = mat4.clone(reticle.matrix);
 
           // Translate farther along the surface normal (z-axis in local space)
-          let distance = 2.0; // Move 2 meters away
+          let distance = 2.0; // 2 meters away
           let translation = mat4.create();
           mat4.fromTranslation(translation, [0, 0, -distance]);
           mat4.multiply(matrix, matrix, translation);
@@ -211,11 +229,35 @@ Licensed under the MIT License.
         }
       }
 
+      function changeVideo(index) {
+        const videoSources = [
+          './media/video/Video1.mp4',
+          './media/video/Video2.mp4',
+          './media/video/Video3.mp4',
+          './media/video/Video4.mp4',
+          './media/video/Video5.mp4'
+        ];
+        const newSrc = videoSources[index - 1];
+        if (video.src !== newSrc) {
+          video.pause();
+          video.src = newSrc;
+          video.load();
+          if (videoNode) {
+            // Update existing VideoNode
+            videoNode._video = video;
+            videoNode._video_texture = new VideoTexture(video);
+            videoNode.onRendererChanged(renderer); // Reinitialize render primitive
+            video.play();
+          }
+        }
+      }
+
       function onXRFrame(t, frame) {
         let session = frame.session;
         let pose = frame.getViewerPose(xrRefSpace);
 
         reticle.visible = false;
+        document.getElementById('video-controls').style.display = 'none';
 
         if (xrHitTestSource && pose) {
           let hitTestResults = frame.getHitTestResults(xrHitTestSource);
@@ -223,6 +265,7 @@ Licensed under the MIT License.
             let pose = hitTestResults[0].getPose(xrRefSpace);
             reticle.visible = true;
             reticle.matrix = pose.transform.matrix;
+            document.getElementById('video-controls').style.display = 'flex';
           }
         }
 

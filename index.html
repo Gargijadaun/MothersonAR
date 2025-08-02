@@ -1,134 +1,115 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
   <head>
     <meta charset="utf-8" />
-    <title>AR Video Placement</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <script>
-      AFRAME.registerComponent("ar-hit-place", {
-        init: function () {
-          this.viewerSpace = null;
-          this.refSpace = null;
-          this.hitTestSource = null;
-          this.hasPlaced = false;
+    <title>WebAR Video Player</title>
+   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+    
 
-          const scene = this.el.sceneEl;
-
-          scene.renderer.xr.addEventListener("sessionstart", () => {
-            const session = scene.renderer.xr.getSession();
-
-            session.requestReferenceSpace("viewer").then((space) => {
-              this.viewerSpace = space;
-              session.requestHitTestSource({ space }).then((source) => {
-                this.hitTestSource = source;
-              });
-            });
-
-            session.requestReferenceSpace("local-floor").then((space) => {
-              this.refSpace = space;
-            });
-
-            session.addEventListener("select", () => {
-              if (!this.latestHit || this.hasPlaced) return;
-
-              const pos = this.latestHit;
-              const videoPlane = document.getElementById("videoPlane");
-
-              videoPlane.setAttribute("position", pos);
-              videoPlane.setAttribute("visible", true);
-              document.getElementById("video").play();
-              this.hasPlaced = true;
-            });
-          });
-        },
-
-        tick: function () {
-          if (!this.viewerSpace || !this.refSpace || !this.hitTestSource) return;
-          const frame = this.el.sceneEl.frame;
-          const hitTestResults = frame.getHitTestResults(this.hitTestSource);
-
-          if (hitTestResults.length > 0) {
-            const referenceSpace = this.refSpace;
-            const hitPose = hitTestResults[0].getPose(referenceSpace);
-            this.latestHit = {
-              x: hitPose.transform.position.x,
-              y: hitPose.transform.position.y,
-              z: hitPose.transform.position.z,
-            };
-          }
-        },
-      });
-
-      function changeVideo(src) {
-        const video = document.getElementById("video");
-        const videoPlane = document.getElementById("videoPlane");
-
-        video.pause();
-        video.src = src;
-        video.load();
-        video.oncanplay = () => {
-          video.play();
-          videoPlane.setAttribute("material", "src", "#video");
-        };
+    <style>
+      #overlay {
+        position: absolute;
+        width: 100%;
+        bottom: 10px;
+        display: flex;
+        justify-content: center;
+        z-index: 1;
       }
-    </script>
+      .vid-btn {
+        padding: 10px 15px;
+        margin: 0 5px;
+        font-size: 16px;
+        background: rgba(0, 0, 0, 0.6);
+        color: white;
+        border: none;
+        border-radius: 5px;
+      }
+    </style>
   </head>
 
-  <body style="margin: 0; overflow: hidden">
-    <a-scene
-      vr-mode-ui="enabled: false"
-      webxr="requiredFeatures: hit-test; optionalFeatures: dom-overlay"
-      xr-dom-overlay="root: #overlay"
-      embedded
-    >
-      <a-camera
-        position="0 0 0"
-        look-controls="enabled: true"
-        cursor="fuse: false; rayOrigin: mouse"
-        raycaster="objects: .clickable"
-      ></a-camera>
-
-      <!-- Video plane -->
-      <a-plane
-        id="videoPlane"
-        width="1.6"
-        height="0.9"
-        visible="false"
-        material="shader: flat; src: #video"
-      ></a-plane>
-
-      <!-- Hit test component -->
-      <a-entity ar-hit-place></a-entity>
-    </a-scene>
-
-    <!-- Video asset -->
+  <body>
+    <!-- 🎯 Video element -->
     <video
       id="video"
-      loop
+      playsinline
       crossorigin="anonymous"
       webkit-playsinline
-      playsinline
-      style="display: none"
+      loop
+      style="display:none"
     >
       <source src="./video/Video1.mp4" type="video/mp4" />
     </video>
 
-    <!-- UI Overlay -->
-    <div
-      id="overlay"
-      style="
-        position: absolute;
-        bottom: 10px;
-        left: 10px;
-        z-index: 999;
-        display: flex;
-        gap: 10px;
-      "
-    >
-      <button onclick="changeVideo('./video/Video1.mp4')">Video 1</button>
-      <button onclick="changeVideo('./video/Video2.mp4')">Video 2</button>
-      <button onclick="changeVideo('./video/Video3.mp4')">Video 3</button>
+    <!-- 🧠 On-screen video control -->
+    <div id="overlay">
+      <button class="vid-btn" onclick="changeVideo('./video/Video1.mp4')">Video 1</button>
+      <button class="vid-btn" onclick="changeVideo('./video/Video2.mp4')">Video 2</button>
+      <button class="vid-btn" onclick="changeVideo('./video/Video3.mp4')">Video 3</button>
+      <button class="vid-btn" onclick="changeVideo('./video/Video4.mp4')">Video 4</button>
+      <button class="vid-btn" onclick="changeVideo('./video/Video5.mp4')">Video 5</button>
     </div>
+
+    <!-- 📷 AR Scene -->
+  <a-scene
+  webxr="requiredFeatures: hit-test; optionalFeatures: dom-overlay"
+  xr-dom-overlay="root: #overlay"
+  vr-mode-ui="enabled: false"
+  embedded
+>
+  <!-- Camera -->
+  <a-entity camera look-controls></a-entity>
+
+  <!-- Video Plane -->
+  <a-plane
+    id="videoPlane"
+    width="1.6"
+    height="0.9"
+    visible="false"
+    material="shader: flat; src: #video"
+  ></a-plane>
+
+  <!-- Light -->
+  <a-light type="directional" intensity="1" position="1 1 0"></a-light>
+</a-scene>
+
+
+    <!-- 🧠 Logic -->
+    <script>
+      const videoPlane = document.getElementById("videoPlane");
+const videoElement = document.getElementById("video");
+let hasPlaced = false;
+
+document.querySelector("a-scene").addEventListener("click", (e) => {
+  if (hasPlaced) return;
+
+  const xrFrame = e.detail && e.detail.frame;
+  const refSpace = e.detail && e.detail.referenceSpace;
+  const viewerPose = xrFrame && xrFrame.getViewerPose(refSpace);
+
+  if (viewerPose) {
+    const pos = viewerPose.transform.position;
+    videoPlane.setAttribute("position", `${pos.x} ${pos.y} ${pos.z - 1}`);
+    videoPlane.setAttribute("visible", true);
+    videoElement.play();
+    hasPlaced = true;
+  }
+});
+
+
+      // 🔁 Change video from button
+      function changeVideo(src) {
+        videoElement.pause();
+        videoElement.src = src;
+        videoElement.load();
+        videoElement.play();
+        videoPlane.setAttribute("material", "src", "#video");
+      }
+       document.querySelector('a-scene').addEventListener('loaded', () => {
+    if (!navigator.xr) {
+      alert('WebXR not supported on this browser/device');
+    }
+  });
+    </script>
   </body>
 </html>

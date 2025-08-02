@@ -23,6 +23,7 @@ Licensed under the MIT License.
         color: white;
         padding: 10px;
         text-align: center;
+        z-index: 10;
       }
       button {
         padding: 10px;
@@ -38,6 +39,7 @@ Licensed under the MIT License.
         background: rgba(0, 0, 0, 0.7);
         padding: 10px;
         border-radius: 5px;
+        z-index: 10;
       }
       #video-controls button {
         margin: 0 5px;
@@ -83,6 +85,8 @@ Licensed under the MIT License.
       video.src = './media/video/Video1.mp4'; // Default video
       video.loop = true;
       video.muted = false; // Sound enabled (requires user interaction)
+      video.onerror = () => console.error('Video failed to load:', video.src);
+      video.oncanplay = () => console.log('Video ready to play:', video.src);
       let videoNode = null;
 
       // Reticle for hit-test visualization (simple quad)
@@ -150,6 +154,8 @@ Licensed under the MIT License.
             xrButton.domElement.disabled = !supported;
             xrButton.domElement.textContent = supported ? 'START AR' : 'AR NOT FOUND';
           });
+        } else {
+          console.error('WebXR not supported');
         }
       }
 
@@ -158,7 +164,8 @@ Licensed under the MIT License.
           .then((session) => {
             xrButton.setSession(session);
             onSessionStarted(session);
-          });
+          })
+          .catch((err) => console.error('Failed to start AR session:', err));
       }
 
       function onSessionStarted(session) {
@@ -177,13 +184,13 @@ Licensed under the MIT License.
           xrViewerSpace = refSpace;
           session.requestHitTestSource({ space: xrViewerSpace }).then((hitTestSource) => {
             xrHitTestSource = hitTestSource;
-          });
+          }).catch((err) => console.error('Failed to create hit test source:', err));
         });
 
         session.requestReferenceSpace('local').then((refSpace) => {
           xrRefSpace = refSpace;
           session.requestAnimationFrame(onXRFrame);
-        });
+        }).catch((err) => console.error('Failed to get local reference space:', err));
       }
 
       function onEndSession() {
@@ -225,7 +232,16 @@ Licensed under the MIT License.
           vec3.set(videoNode.scale, aspect * size, size, 1.0);
 
           scene.addNode(videoNode);
-          video.play();
+          // Wait for video to be ready before playing
+          if (video.readyState >= 2) { // HAVE_ENOUGH_DATA
+            video.play().catch((err) => console.error('Video playback failed:', err));
+          } else {
+            video.oncanplay = () => {
+              video.play().catch((err) => console.error('Video playback failed:', err));
+            };
+          }
+          document.getElementById('video-controls').style.display = 'flex';
+          console.log('Video placed, controls shown');
         }
       }
 
@@ -239,6 +255,7 @@ Licensed under the MIT License.
         ];
         const newSrc = videoSources[index - 1];
         if (video.src !== newSrc) {
+          console.log('Switching to video:', newSrc);
           video.pause();
           video.src = newSrc;
           video.load();
@@ -246,8 +263,10 @@ Licensed under the MIT License.
             // Update existing VideoNode
             videoNode._video = video;
             videoNode._video_texture = new VideoTexture(video);
-            videoNode.onRendererChanged(renderer); // Reinitialize render primitive
-            video.play();
+            videoNode.onRendererChanged(renderer);
+            video.oncanplay = () => {
+              video.play().catch((err) => console.error('Video playback failed:', err));
+            };
           }
         }
       }
@@ -257,7 +276,6 @@ Licensed under the MIT License.
         let pose = frame.getViewerPose(xrRefSpace);
 
         reticle.visible = false;
-        document.getElementById('video-controls').style.display = 'none';
 
         if (xrHitTestSource && pose) {
           let hitTestResults = frame.getHitTestResults(xrHitTestSource);
@@ -265,7 +283,11 @@ Licensed under the MIT License.
             let pose = hitTestResults[0].getPose(xrRefSpace);
             reticle.visible = true;
             reticle.matrix = pose.transform.matrix;
-            document.getElementById('video-controls').style.display = 'flex';
+            if (!videoNode) {
+              document.getElementById('video-controls').style.display = 'flex';
+            }
+          } else {
+            document.getElementById('video-controls').style.display = 'none';
           }
         }
 

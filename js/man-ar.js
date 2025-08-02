@@ -100,7 +100,7 @@ function goBack() {
     document.getElementById("videoScreen").classList.remove("active");
     document.getElementById("mainScreen").style.display = "block";
     document.getElementById("mainScreen").classList.add("active");
-    window.checkOrientation();
+    // window.checkOrientation();
     document.querySelectorAll("video").forEach(video => {
         video.pause();
         video.currentTime = 0;
@@ -164,7 +164,7 @@ function goToAnimation() {
 
     if (arSystem && arSystem.running) arSystem.stop();
 
-    changeVideoSource("assets/video/Test-01.mp4");
+    changeVideoSource("assets/video/Video1.mp4");
     init();
 
     // Multiple resize calls to stabilize WebXR and canvas
@@ -172,7 +172,7 @@ function goToAnimation() {
     setTimeout(forceRendererResize, 200);
     setTimeout(forceRendererResize, 500);
     setTimeout(forceRendererResize, 1000);
-    checkOrientation();
+    // checkOrientation();
 
     sessionStorage.setItem("cameraActive", "true");
 }
@@ -225,19 +225,12 @@ document.addEventListener("DOMContentLoaded", () => {
     sceneEl.addEventListener("loaded", () => {
         arSystem = sceneEl.systems["mindar-image-system"];
         document.querySelector('#mainScreen .btn-container').classList.add('show');
-        window.checkOrientation();
-        setTimeout(forceResize, 100);
+     
     });
 });
 
-// ✅ Listen for resize events
-window.addEventListener('resize', () => {
-    window.checkOrientation();
-    setTimeout(forceResize, 100);
-});
 
 // ✅ Global Access
 window.goToAnimation = goToAnimation;
 window.goBack = goBack;
 window.changeVideo = changeVideo;
-window.forceResize = forceResize;

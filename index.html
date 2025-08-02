@@ -5,11 +5,7 @@
   <title>AR Video Player</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      font-family: sans-serif;
-    }
+    body { margin: 0; overflow: hidden; font-family: sans-serif; }
 
     #start-screen {
       position: absolute;
@@ -32,10 +28,7 @@
 
     #ar-overlay {
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      top: 0; left: 0; right: 0; bottom: 0;
       pointer-events: none;
       z-index: 5;
     }
@@ -61,9 +54,7 @@
       cursor: pointer;
     }
 
-    video {
-      display: none;
-    }
+    video { display: none; }
   </style>
 </head>
 <body>
@@ -77,7 +68,7 @@
       <button onclick="changeVideo('assets/video/Video1.mp4')">Video 1</button>
       <button onclick="changeVideo('assets/video/Video2.mp4')">Video 2</button>
       <button onclick="changeVideo('assets/video/Video3.mp4')">Video 3</button>
-      <button onclick="changeVideo('assets/video/Video4.mp4')">Video 4</button>
+      <button onclick="changeVideo('assets/video/Video5.mp4')">Video 4</button>
       <button onclick="changeVideo('assets/video/Video5.mp4')">Video 5</button>
     </div>
   </div>
@@ -86,17 +77,17 @@
     import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.module.js';
 
     let camera, scene, renderer;
-    let controller, reticle, hitTestSource = null, hitTestSourceRequested = false;
-    let videoTexture, videoPlane;
-    let video;
+    let controller, reticle, hitTestSource = null;
+    let videoPlane, videoTexture, video;
     let selectedVideo = 'assets/video/Video1.mp4';
 
     window.startAR = async () => {
       document.getElementById('start-screen').style.display = 'none';
-      document.getElementById('video-buttons').style.display = 'flex';
 
       await initAR();
       await startARSession();
+
+      document.getElementById('video-buttons').style.display = 'flex';
     };
 
     window.changeVideo = (src) => {
@@ -110,44 +101,45 @@
       }
     };
 
-    function initAR() {
-      return new Promise((resolve) => {
-        video = document.createElement('video');
-        video.src = selectedVideo;
-        video.loop = true;
-        video.muted = true;
-        video.playsInline = true;
-        video.crossOrigin = 'anonymous';
-        video.play().catch(console.error); // handle autoplay restrictions
+    async function initAR() {
+      // Set up video element
+      video = document.createElement('video');
+      video.src = selectedVideo;
+      video.loop = true;
+      video.muted = true;
+      video.playsInline = true;
+      video.crossOrigin = 'anonymous';
 
-        scene = new THREE.Scene();
-        camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+      // Scene
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
 
-        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.xr.enabled = true;
-        document.body.appendChild(renderer.domElement);
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.xr.enabled = true;
+      document.body.appendChild(renderer.domElement);
 
-        videoTexture = new THREE.VideoTexture(video);
-        const geometry = new THREE.PlaneGeometry(1, 0.56);
-        const material = new THREE.MeshBasicMaterial({ map: videoTexture });
-        videoPlane = new THREE.Mesh(geometry, material);
-        videoPlane.visible = false;
-        scene.add(videoPlane);
+      // Video plane
+      videoTexture = new THREE.VideoTexture(video);
+      const geometry = new THREE.PlaneGeometry(1, 0.56);
+      const material = new THREE.MeshBasicMaterial({ map: videoTexture });
+      videoPlane = new THREE.Mesh(geometry, material);
+      videoPlane.visible = false;
+      scene.add(videoPlane);
 
-        const ringGeo = new THREE.RingGeometry(0.05, 0.06, 32).rotateX(-Math.PI / 2);
-        const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-        reticle = new THREE.Mesh(ringGeo, ringMat);
-        reticle.visible = false;
-        scene.add(reticle);
+      // Reticle
+      const ringGeo = new THREE.RingGeometry(0.05, 0.06, 32).rotateX(-Math.PI / 2);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+      reticle = new THREE.Mesh(ringGeo, ringMat);
+      reticle.visible = false;
+      scene.add(reticle);
 
-        controller = renderer.xr.getController(0);
-        controller.addEventListener('select', onSelect);
-        scene.add(controller);
+      // Controller for placement
+      controller = renderer.xr.getController(0);
+      controller.addEventListener('select', onSelect);
+      scene.add(controller);
 
-        renderer.setAnimationLoop(render);
-        resolve();
-      });
+      renderer.setAnimationLoop(render);
     }
 
     async function startARSession() {
@@ -162,29 +154,36 @@
       hitTestSource = await session.requestHitTestSource({ space: referenceSpace });
 
       session.addEventListener('end', () => {
-        hitTestSourceRequested = false;
         hitTestSource = null;
       });
-
-      hitTestSourceRequested = true;
     }
 
     function onSelect() {
       if (reticle.visible) {
+        // Place video at reticle
         videoPlane.position.setFromMatrixPosition(reticle.matrix);
         videoPlane.quaternion.setFromRotationMatrix(reticle.matrix);
-        videoPlane.visible = true;
+      } else {
+        // Place video in front of camera if no reticle
+        const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+        const position = new THREE.Vector3().copy(camera.position).add(direction.multiplyScalar(1));
+        videoPlane.position.copy(position);
+        videoPlane.quaternion.copy(camera.quaternion);
       }
+
+      videoPlane.visible = true;
+
+      // Play only after placement to comply with autoplay
+      video.play().catch(console.error);
     }
 
     function render(_, frame) {
       if (frame && hitTestSource) {
         const referenceSpace = renderer.xr.getReferenceSpace();
-        const hitTestResults = frame.getHitTestResults(hitTestSource);
+        const results = frame.getHitTestResults(hitTestSource);
 
-        if (hitTestResults.length > 0) {
-          const hit = hitTestResults[0];
-          const pose = hit.getPose(referenceSpace);
+        if (results.length > 0) {
+          const pose = results[0].getPose(referenceSpace);
           reticle.visible = true;
           reticle.matrix.fromArray(pose.transform.matrix);
         } else {

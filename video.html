@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" id="viewport-meta" content="width=device-width, initial-scale=1.0" />
+  <title>Motherson</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: black;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    #main-screen,
+    #video-screen {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+
+    #rotate-message {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.95);
+      color: white;
+      font-size: 5vw;
+      text-align: center;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+    }
+
+    .image-wrapper {
+      position: relative;
+      width: 100vw;
+      height: 56.25vw; /* Maintain 1920x1080 (16:9) ratio */
+      max-height: 100vh;
+      max-width: 177.78vh; /* Maintain aspect ratio on tall screens */
+      background: black;
+      overflow: hidden;
+    }
+
+    .bg-image {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    .hotspot-btn {
+      position: absolute;
+   width: 9.2%;
+    height: 16.26%; /* About 100px of 1080px => 100 / 1080 = ~9.26% */
+      transform: translate(-50%, -50%);
+      background: transparent;
+      border: none; /* Optional: highlight area */
+      border-radius: 50%;
+      z-index: 2;
+      cursor: pointer;
+    }
+
+    #video-screen {
+      display: none;
+      background: black;
+    }
+
+    #video-player {
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+    }
+
+    #back-button {
+      position: absolute;
+      top: 2vw;
+      left: 2vw;
+      padding: 1vw 2vw;
+      font-size: min(2vw, 16px);
+      cursor: pointer;
+      background-color: #2c6a6d;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      z-index: 10;
+    }
+
+    #back-button:hover {
+      background-color: #d32f2f;
+    }
+
+    #fullscreen-button {
+      position: fixed;
+      top: 45%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 2vw 4vw;
+      font-size: min(4vw, 20px);
+      cursor: pointer;
+      background-color: #2c6a6d;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      z-index: 3000;
+    }
+
+    #fullscreen-button:hover {
+      background-color: #d32f2f;
+    }
+  </style>
+</head>
+<body>
+  <button id="fullscreen-button" onclick="enterFullscreen()">Enter Full-Screen</button>
+  <div id="rotate-message">Please rotate your phone to landscape mode</div>
+
+  <div id="main-screen" style="display: none;">
+    <button id="back-button" onclick="Home()">Home</button>
+
+    <div class="image-wrapper">
+      <img src="assets/images/Brochure-Landscape.jpg" class="bg-image" alt="Background" />
+
+      <!-- Hotspot buttons positioned according to 1920x1080 reference -->
+      <button class="hotspot-btn" style="top: 86.1%; left: 8%;" onclick="playVideo('assets/video/Video1.mp4')"></button>
+      <button class="hotspot-btn" style="top: 86.1%; left: 29%;" onclick="playVideo('assets/video/Video2.mp4')"></button>
+      <button class="hotspot-btn" style="top: 86.1%; left: 50%;" onclick="playVideo('assets/video/Video3.mp4')"></button>
+      <button class="hotspot-btn" style="top: 86.1%; left: 71%;" onclick="playVideo('assets/video/Video4.mp4')"></button>
+      <button class="hotspot-btn" style="top: 86.1%; left: 92%;" onclick="playVideo('assets/video/Test-01.mp4')"></button>
+    </div>
+  </div>
+
+  <div id="video-screen" style="display: none;">
+    <button id="back-button" onclick="goBack()">Back</button>
+    <video id="video-player" autoplay></video>
+  </div>
+
+  <script>
+    const mainScreen = document.getElementById('main-screen');
+    const videoScreen = document.getElementById('video-screen');
+    const videoPlayer = document.getElementById('video-player');
+    const rotateMessage = document.getElementById('rotate-message');
+    const viewportMeta = document.getElementById('viewport-meta');
+
+    function checkOrientation() {
+      const isLandscape = window.innerWidth > window.innerHeight;
+      if (isLandscape) {
+        rotateMessage.style.display = 'none';
+        mainScreen.style.display = 'flex';
+      } else {
+        rotateMessage.style.display = 'flex';
+        mainScreen.style.display = 'none';
+        videoScreen.style.display = 'none';
+      }
+    }
+
+    function playVideo(videoUrl) {
+      videoPlayer.src = videoUrl;
+      viewportMeta.content = 'width=device-width, initial-scale=1.0';
+      mainScreen.style.display = 'none';
+      videoScreen.style.display = 'flex';
+      videoPlayer.play();
+    }
+
+    function goBack() {
+      videoPlayer.pause();
+      videoPlayer.src = '';
+      videoScreen.style.display = 'none';
+      mainScreen.style.display = 'flex';
+      viewportMeta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+      setTimeout(() => {
+        viewportMeta.content = 'width=device-width, initial-scale=1.0';
+      }, 100);
+      checkOrientation();
+    }
+
+    function Home() {
+      window.location.href = "index.html";
+    }
+
+    function enterFullscreen() {
+      const elem = document.documentElement;
+      const requestFullscreen =
+        elem.requestFullscreen ||
+        elem.webkitRequestFullscreen ||
+        elem.msRequestFullscreen;
+
+      if (requestFullscreen) {
+        requestFullscreen.call(elem).finally(() => {
+          document.getElementById('fullscreen-button').style.display = 'none';
+          checkOrientation();
+        });
+      } else {
+        document.getElementById('fullscreen-button').style.display = 'none';
+        checkOrientation();
+      }
+    }
+
+    window.addEventListener("load", () => {
+      document.getElementById("fullscreen-button").style.display = "block";
+      checkOrientation();
+    });
+
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', () => {
+      setTimeout(checkOrientation, 200);
+    });
+  </script>
+</body>
+</html>

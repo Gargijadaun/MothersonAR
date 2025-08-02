@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AR Video Switcher</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+    #startScreen {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+    }
+    #arUI {
+      position: absolute;
+      bottom: 10px;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      z-index: 10;
+      display: none;
+    }
+    .ar-btn, .start-btn {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background: #2196f3;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+    video {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Start Screen -->
+  <div id="startScreen">
+    <button class="start-btn" id="startARBtn">Start AR</button>
+    <br />
+    <button class="start-btn" onclick="window.location.href='video.html'">Non-AR Mode</button>
+  </div>
+
+  <!-- AR UI Overlay -->
+  <div id="arUI">
+    <button class="ar-btn" onclick="changeVideo('assets/video/Video1.mp4')">Video 1</button>
+    <button class="ar-btn" onclick="changeVideo('assets/video/Video2.mp4')">Video 2</button>
+    <button class="ar-btn" onclick="changeVideo('assets/video/Video3.mp4')">Video 3</button>
+    <button class="ar-btn" onclick="changeVideo('assets/video/Video4.mp4')">Video 4</button>
+    <button class="ar-btn" onclick="changeVideo('assets/video/Video5.mp4')">Video 5</button>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.module.js';
+    import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.147.0/examples/jsm/webxr/ARButton.js';
+
+    let camera, scene, renderer;
+    let controller, reticle, videoPlane;
+    let hitTestSource = null, hitTestSourceRequested = false;
+    let videoTexture;
+    const video = document.createElement('video');
+    video.loop = true;
+    video.muted = true;
+    video.playsInline = true;
+    video.crossOrigin = 'anonymous';
+
+    const startARBtn = document.getElementById('startARBtn');
+    const arUI = document.getElementById('arUI');
+    const startScreen = document.getElementById('startScreen');
+
+    startARBtn.addEventListener('click', () => {
+      startScreen.style.display = 'none';
+      arUI.style.display = 'flex';
+      initAR();
+    });
+
+    function changeVideo(src) {
+      video.pause();
+      video.src = src;
+      video.load();
+      video.play();
+    }
+
+    function initAR() {
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.xr.enabled = true;
+      document.body.appendChild(renderer.domElement);
+
+      document.body.appendChild(ARButton.createButton(renderer, {
+        requiredFeatures: ['hit-test']
+      }));
+
+      // Setup texture
+      video.src = 'assets/video/Video1.mp4';
+      videoTexture = new THREE.VideoTexture(video);
+
+      const geometry = new THREE.PlaneGeometry(1, 0.56);
+      const material = new THREE.MeshBasicMaterial({ map: videoTexture });
+      videoPlane = new THREE.Mesh(geometry, material);
+      videoPlane.visible = false;
+      scene.add(videoPlane);
+
+      // Reticle
+      const ringGeo = new THREE.RingGeometry(0.05, 0.06, 32).rotateX(-Math.PI / 2);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+      reticle = new THREE.Mesh(ringGeo, ringMat);
+      reticle.visible = false;
+      scene.add(reticle);
+
+      controller = renderer.xr.getController(0);
+      controller.addEventListener('select', onSelect);
+      scene.add(controller);
+
+      renderer.setAnimationLoop(render);
+    }
+
+    function onSelect() {
+      if (reticle.visible && !videoPlane.visible) {
+        videoPlane.position.setFromMatrixPosition(reticle.matrix);
+        videoPlane.quaternion.setFromRotationMatrix(reticle.matrix);
+        videoPlane.visible = true;
+        video.play();
+      }
+    }
+
+    function render(timestamp, frame) {
+      if (frame) {
+        const referenceSpace = renderer.xr.getReferenceSpace();
+        const session = renderer.xr.getSession();
+
+        if (!hitTestSourceRequested) {
+          session.requestReferenceSpace('viewer').then(space => {
+            session.requestHitTestSource({ space }).then(source => {
+              hitTestSource = source;
+            });
+          });
+
+          session.addEventListener('end', () => {
+            hitTestSourceRequested = false;
+            hitTestSource = null;
+          });
+
+          hitTestSourceRequested = true;
+        }
+
+        if (hitTestSource) {
+          const hitTestResults = frame.getHitTestResults(hitTestSource);
+          if (hitTestResults.length > 0) {
+            const hit = hitTestResults[0];
+            const pose = hit.getPose(referenceSpace);
+            reticle.visible = true;
+            reticle.matrix.fromArray(pose.transform.matrix);
+          } else {
+            reticle.visible = false;
+          }
+        }
+      }
+
+      renderer.render(scene, camera);
+    }
+  </script>
+</body>
+</html>

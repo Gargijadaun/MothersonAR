@@ -37,7 +37,7 @@ Licensed under the MIT License.
       <details open>
         <summary>AR Video Playback</summary>
         <p>
-          Tap to place a video on a detected surface.
+          Tap to place a small video on a detected surface, positioned farther away.
           <a class="back" href="./">Back</a>
         </p>
       </details>
@@ -68,10 +68,47 @@ Licensed under the MIT License.
       video.muted = false; // Set to false to allow sound (user interaction required)
       let videoNode = null;
 
-      // Reticle for hit-test visualization (simple plane)
+      // Reticle for hit-test visualization (simple quad)
       let reticle = new Node();
       reticle.visible = false;
       scene.addNode(reticle);
+
+      // Simple reticle geometry (small quad)
+      {
+        let vertices = new Float32Array([
+          -0.05, -0.05, 0, 0, 0,
+          0.05, -0.05, 0, 1, 0,
+          0.05, 0.05, 0, 1, 1,
+          -0.05, 0.05, 0, 0, 1
+        ]);
+        let indices = new Uint16Array([0, 1, 2, 0, 2, 3]);
+        reticle.onRendererChanged = (renderer) => {
+          let vertexBuffer = renderer.createRenderBuffer(WebGLRenderingContext.ARRAY_BUFFER, vertices);
+          let indexBuffer = renderer.createRenderBuffer(WebGLRenderingContext.ELEMENT_ARRAY_BUFFER, indices);
+          let attribs = [
+            new PrimitiveAttribute('POSITION', vertexBuffer, 3, WebGLRenderingContext.FLOAT, 20, 0),
+            new PrimitiveAttribute('TEXCOORD_0', vertexBuffer, 2, WebGLRenderingContext.FLOAT, 20, 12),
+          ];
+          let primitive = new Primitive(attribs, indices.length);
+          primitive.setIndexBuffer(indexBuffer);
+          let material = new VideoMaterial(); // Reuse VideoMaterial for simplicity
+          material.image.texture = renderer.createTexture({ source: createReticleTexture() });
+          let renderPrimitive = renderer.createRenderPrimitive(primitive, material);
+          reticle.addRenderPrimitive(renderPrimitive);
+        };
+
+        function createReticleTexture() {
+          let canvas = document.createElement('canvas');
+          canvas.width = 64;
+          canvas.height = 64;
+          let ctx = canvas.getContext('2d');
+          ctx.fillStyle = 'white';
+          ctx.beginPath();
+          ctx.arc(32, 32, 30, 0, 2 * Math.PI);
+          ctx.fill();
+          return canvas;
+        }
+      }
 
       function initXR() {
         xrButton = {
@@ -152,11 +189,23 @@ Licensed under the MIT License.
           // Create a VideoNode with the video element
           videoNode = new VideoNode({ video: video, displayMode: 'mono' });
           videoNode.visible = true;
-          videoNode.matrix = reticle.matrix;
 
-          // Scale the video plane to maintain aspect ratio
+          // Start with reticle's matrix
+          let matrix = mat4.clone(reticle.matrix);
+
+          // Translate farther along the surface normal (z-axis in local space)
+          let distance = 2.0; // Move 2 meters away
+          let translation = mat4.create();
+          mat4.fromTranslation(translation, [0, 0, -distance]);
+          mat4.multiply(matrix, matrix, translation);
+
+          videoNode.matrix = matrix;
+
+          // Scale the video to be smaller
           let aspect = videoNode.aspectRatio;
-          vec3.set(videoNode.scale, aspect * 0.5, 0.5, 1.0); // Adjust size as needed
+          let size = 0.1; // 0.1 meters tall
+          vec3.set(videoNode.scale, aspect * size, size, 1.0);
+
           scene.addNode(videoNode);
           video.play();
         }

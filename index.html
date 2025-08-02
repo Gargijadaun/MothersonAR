@@ -40,8 +40,8 @@
       border: none;
       border-radius: 5px;
     }
-    video {
-      display: none;
+    canvas, video {
+      display: block;
     }
   </style>
 </head>
@@ -70,6 +70,7 @@
     let controller, reticle, videoPlane;
     let hitTestSource = null, hitTestSourceRequested = false;
     let videoTexture;
+
     const video = document.createElement('video');
     video.loop = true;
     video.muted = true;
@@ -82,7 +83,6 @@
 
     startARBtn.addEventListener('click', () => {
       startScreen.style.display = 'none';
-      arUI.style.display = 'flex';
       initAR();
     });
 
@@ -93,52 +93,54 @@
       video.play();
     }
 
-    function initAR() {
-      scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+   function initAR() {
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
 
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.xr.enabled = true;
-      document.body.appendChild(renderer.domElement);
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.xr.enabled = true;
+  document.body.appendChild(renderer.domElement);
 
-      document.body.appendChild(ARButton.createButton(renderer, {
-        requiredFeatures: ['hit-test']
-      }));
+  document.body.appendChild(ARButton.createButton(renderer, {
+    requiredFeatures: ['hit-test']
+  }));
 
-      // Setup texture
-      video.src = 'assets/video/Video1.mp4';
-      videoTexture = new THREE.VideoTexture(video);
+  // Setup video texture
+  video.src = 'assets/video/Video1.mp4';
+  videoTexture = new THREE.VideoTexture(video);
 
-      const geometry = new THREE.PlaneGeometry(1, 0.56);
-      const material = new THREE.MeshBasicMaterial({ map: videoTexture });
-      videoPlane = new THREE.Mesh(geometry, material);
-      videoPlane.visible = false;
-      scene.add(videoPlane);
+  const geometry = new THREE.PlaneGeometry(1, 0.56);
+  const material = new THREE.MeshBasicMaterial({ map: videoTexture });
+  videoPlane = new THREE.Mesh(geometry, material);
+  videoPlane.visible = false;
+  scene.add(videoPlane);
 
-      // Reticle
-      const ringGeo = new THREE.RingGeometry(0.05, 0.06, 32).rotateX(-Math.PI / 2);
-      const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-      reticle = new THREE.Mesh(ringGeo, ringMat);
-      reticle.visible = false;
-      scene.add(reticle);
+  // Reticle
+  const ringGeo = new THREE.RingGeometry(0.05, 0.06, 32).rotateX(-Math.PI / 2);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+  reticle = new THREE.Mesh(ringGeo, ringMat);
+  reticle.visible = false;
+  scene.add(reticle);
 
-      controller = renderer.xr.getController(0);
-      controller.addEventListener('select', onSelect);
-      scene.add(controller);
+  controller = renderer.xr.getController(0);
+  controller.addEventListener('select', onSelect);
+  scene.add(controller);
 
-      renderer.setAnimationLoop(render);
-    }
+  renderer.setAnimationLoop(render);
+}
 
-    function onSelect() {
-      if (reticle.visible && !videoPlane.visible) {
-        videoPlane.position.setFromMatrixPosition(reticle.matrix);
-        videoPlane.quaternion.setFromRotationMatrix(reticle.matrix);
-        videoPlane.visible = true;
-        video.play();
-      }
-    }
+function onSelect() {
+  if (reticle.visible && !videoPlane.visible) {
+    videoPlane.position.setFromMatrixPosition(reticle.matrix);
+    videoPlane.quaternion.setFromRotationMatrix(reticle.matrix);
+    videoPlane.visible = true;
+    video.play();
+    arUI.style.display = 'flex'; // Show buttons only after video is placed
+  }
+}
 
+   
     function render(timestamp, frame) {
       if (frame) {
         const referenceSpace = renderer.xr.getReferenceSpace();

@@ -995,51 +995,45 @@ document.addEventListener('DOMContentLoaded', () => {
       const displayVideo = document.querySelector('#displayVideo');
       const arBackBtn = document.querySelector('#arBackBtn');
         const arBackBtn1 = document.querySelector('#arBackBtn1');
-target.addEventListener('targetFound', () => {
+
+  target.addEventListener('targetFound', () => {
   targetDetected = true;
 
-  if (hasDetectedOnce) return; // ✅ Prevent running again
-  hasDetectedOnce = true;
-
-  // 🔽 One-time logic
   buttons.forEach(btn => btn.setAttribute('visible', 'true'));
   displayVideo.setAttribute('visible', 'false');
   arBackBtn.setAttribute('visible', 'false');
   document.querySelector("#arPlayPauseBtn").setAttribute("visible", "false");
+    arBackBtn1.style.display ="none";
+       document.querySelector("#arPlayPauseBtn1").style.display ="none";
 
-  arBackBtn1.style.display = "none";
-  document.querySelector("#arPlayPauseBtn1").style.display = "none";
 
   document.getElementById("voiceToggleBtn").style.display = "none";
   document.getElementById("descToggleBtn").style.display = "none";
 
+  // Show description if user had turned it on
   if (descriptionVisible) {
     document.querySelector(".bottom-text").style.display = "none";
   }
-
-  console.log("✅ One-time AR target found logic executed.");
 });
 
 target.addEventListener('targetLost', () => {
   targetDetected = false;
-
-  stopAllAudio();
-  buttons.forEach(btn => btn.setAttribute('visible', 'false'));
+ stopAllAudio();
+  buttons.forEach(btn => btn.setAttribute('visible', 'true'));
   displayVideo.setAttribute('visible', 'false');
   displayVideo.pause();
   arBackBtn.setAttribute('visible', 'false');
   document.querySelector("#arPlayPauseBtn").setAttribute("visible", "false");
-
-  arBackBtn1.style.display = "none";
-  document.querySelector("#arPlayPauseBtn1").style.display = "none";
+    arBackBtn1.style.display ="none";
+       document.querySelector("#arPlayPauseBtn1").style.display ="none";
 
   document.getElementById("voiceToggleBtn").style.display = "none";
   document.getElementById("descToggleBtn").style.display = "none";
 
+  // Hide description always when lost
   document.querySelector(".bottom-text").style.display = "none";
-
-  console.log("📴 Target lost.");
 });
+
     });
 
 window.addEventListener("load", () => {

@@ -47,8 +47,8 @@
       display: flex;
       justify-content: center;
       gap: 10px;
-      display: none;
       pointer-events: auto;
+      display: none;
     }
 
     #video-buttons button {
@@ -67,13 +67,14 @@
   </style>
 </head>
 <body>
-  <!-- Custom Start Screen -->
+
+  <!-- Start Screen -->
   <div id="start-screen">
     <button onclick="startAR()">Start AR</button>
     <button onclick="window.location.href='video.html'">Non-AR</button>
   </div>
 
-  <!-- UI Overlay -->
+  <!-- AR Overlay for Video Buttons -->
   <div id="ar-overlay">
     <div id="video-buttons">
       <button onclick="changeVideo('assets/video/Video1.mp4')">Video 1</button>
@@ -91,43 +92,48 @@
     let controller, reticle, hitTestSource = null, hitTestSourceRequested = false;
     let videoTexture, videoPlane;
     let video;
+    let selectedVideo = 'assets/video/Video1.mp4';
 
-    // Global access
     window.startAR = async () => {
       document.getElementById('start-screen').style.display = 'none';
+      document.getElementById('video-buttons').style.display = 'flex'; // Show video buttons
+
       await initAR();
       await startARSession();
     };
 
     window.changeVideo = (src) => {
+      selectedVideo = src;
       if (video) {
         video.pause();
         video.src = src;
         video.load();
         video.play();
+        if (videoTexture) videoTexture.needsUpdate = true;
       }
     };
 
     function initAR() {
       return new Promise((resolve) => {
-        // Create video element
+        // Create and setup video
         video = document.createElement('video');
-        video.src = 'assets/video/Video1.mp4';
+        video.src = selectedVideo;
         video.loop = true;
         video.muted = true;
         video.playsInline = true;
         video.crossOrigin = 'anonymous';
         video.play();
 
-        // Scene and Renderer
+        // Scene setup
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+
         renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.xr.enabled = true;
         document.body.appendChild(renderer.domElement);
 
-        // Video Plane
+        // Video plane
         videoTexture = new THREE.VideoTexture(video);
         const geometry = new THREE.PlaneGeometry(1, 0.56);
         const material = new THREE.MeshBasicMaterial({ map: videoTexture });
@@ -135,7 +141,7 @@
         videoPlane.visible = false;
         scene.add(videoPlane);
 
-        // Reticle
+        // Reticle for placement
         const ringGeo = new THREE.RingGeometry(0.05, 0.06, 32).rotateX(-Math.PI / 2);
         const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
         reticle = new THREE.Mesh(ringGeo, ringMat);
@@ -157,19 +163,21 @@
         requiredFeatures: ['hit-test', 'dom-overlay'],
         domOverlay: { root: document.getElementById('ar-overlay') }
       });
+
       renderer.xr.setSession(session);
     }
 
     function onSelect() {
-      if (reticle.visible && !videoPlane.visible) {
+      if (reticle.visible) {
+        if (!videoPlane.visible) {
+          videoPlane.visible = true;
+        }
         videoPlane.position.setFromMatrixPosition(reticle.matrix);
         videoPlane.quaternion.setFromRotationMatrix(reticle.matrix);
-        videoPlane.visible = true;
-        document.getElementById('video-buttons').style.display = 'flex';
       }
     }
 
-    function render(timestamp, frame) {
+    function render(_, frame) {
       if (frame) {
         const referenceSpace = renderer.xr.getReferenceSpace();
         const session = renderer.xr.getSession();

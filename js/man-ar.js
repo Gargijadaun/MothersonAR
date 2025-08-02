@@ -1,7 +1,7 @@
 let sceneEl = null,
     targetImage = null,
     arSystem = null;
-let hasTargetBeenDetected = false;
+
 let AR_READY = false;
 
 const TIMELINE_DETAILS = {
@@ -61,39 +61,31 @@ function init() {
         forceRendererResize()
     }
 
+    // 📌 Target Found
+    targetImage.addEventListener("targetFound", () => {
+        const mainVideoEl = document.querySelector("#mainVideo");
+        const aVideo = document.querySelector("#displayVideo");
 
-targetImage.addEventListener("targetFound", () => {
-    if (hasTargetBeenDetected) return; // 🔁 Skip if already detected once
-    hasTargetBeenDetected = true;      // ✅ Mark as detected
+        if (mainVideoEl) {
+            mainVideoEl.play().catch(err => console.warn("Autoplay blocked", err));
+        }
+        if (aVideo) {
+            aVideo.setAttribute("visible", "false");
+        }
+    });
 
-    const mainVideoEl = document.querySelector("#mainVideo");
-    const aVideo = document.querySelector("#displayVideo");
+    // 📌 Target Lost
+    targetImage.addEventListener("targetLost", () => {
+        const mainVideoEl = document.querySelector("#mainVideo");
+        const aVideo = document.querySelector("#displayVideo");
 
-    if (mainVideoEl) {
-        mainVideoEl.play().catch(err => console.warn("Autoplay blocked", err));
-    }
-    if (aVideo) {
-        aVideo.setAttribute("visible", "false");
-    }
-
-    console.log("🎯 Target detected and action triggered once.");
-});
-
-targetImage.addEventListener("targetLost", () => {
-    if (hasTargetBeenDetected) return; // 🛑 Do nothing if already detected once
-
-    const mainVideoEl = document.querySelector("#mainVideo");
-    const aVideo = document.querySelector("#displayVideo");
-
-    if (mainVideoEl) {
-        mainVideoEl.pause();
-    }
-    if (aVideo) {
-        aVideo.setAttribute("visible", "false");
-    }
-
-    console.log("📴 Target lost before detection.");
-});
+        if (mainVideoEl) {
+            mainVideoEl.pause();
+        }
+        if (aVideo) {
+            aVideo.setAttribute("visible", "false");
+        }
+    });
 
     sceneEl.addEventListener("arError", () => {
         console.log("MindAR failed to start");

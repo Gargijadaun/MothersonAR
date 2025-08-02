@@ -30,6 +30,16 @@
       cursor: pointer;
     }
 
+    #ar-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none; /* Allows AR input to pass through */
+      z-index: 5;
+    }
+
     #video-buttons {
       position: absolute;
       bottom: 20px;
@@ -37,14 +47,15 @@
       display: flex;
       justify-content: center;
       gap: 10px;
-      z-index: 10;
       display: none;
+      pointer-events: auto; /* Enables clicking */
     }
 
     #video-buttons button {
-      padding: 10px;
+      padding: 10px 15px;
       font-size: 14px;
-      background: rgba(255, 255, 255, 0.8);
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
       border: none;
       border-radius: 5px;
       cursor: pointer;
@@ -56,17 +67,21 @@
   </style>
 </head>
 <body>
+  <!-- Start screen -->
   <div id="start-screen">
     <button onclick="startAR()">Start AR</button>
     <button onclick="window.location.href='video.html'">Non-AR</button>
   </div>
 
-  <div id="video-buttons">
-    <button onclick="changeVideo('assets/video/Video1.mp4')">Video 1</button>
-    <button onclick="changeVideo('assets/video/Video2.mp4')">Video 2</button>
-    <button onclick="changeVideo('assets/video/Video3.mp4')">Video 3</button>
-    <button onclick="changeVideo('assets/video/Video4.mp4')">Video 4</button>
-    <button onclick="changeVideo('assets/video/Video5.mp4')">Video 5</button>
+  <!-- AR overlay for buttons -->
+  <div id="ar-overlay">
+    <div id="video-buttons">
+      <button onclick="changeVideo('assets/video/Video1.mp4')">Video 1</button>
+      <button onclick="changeVideo('assets/video/Video2.mp4')">Video 2</button>
+      <button onclick="changeVideo('assets/video/Video3.mp4')">Video 3</button>
+      <button onclick="changeVideo('assets/video/Video4.mp4')">Video 4</button>
+      <button onclick="changeVideo('assets/video/Video5.mp4')">Video 5</button>
+    </div>
   </div>
 
   <script type="module">
@@ -81,8 +96,6 @@
     // Expose to global scope
     window.startAR = () => {
       document.getElementById('start-screen').style.display = 'none';
-    
-
       initAR();
     };
 
@@ -96,6 +109,7 @@
     };
 
     function initAR() {
+      // Prepare video
       video = document.createElement('video');
       video.src = 'assets/video/Video1.mp4';
       video.loop = true;
@@ -104,29 +118,37 @@
       video.crossOrigin = 'anonymous';
       video.play();
 
+      // Scene setup
       scene = new THREE.Scene();
       camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
-
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.xr.enabled = true;
       document.body.appendChild(renderer.domElement);
 
-      document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
+      // AR button with domOverlay support
+      const arButton = ARButton.createButton(renderer, {
+        requiredFeatures: ['hit-test', 'dom-overlay'],
+        domOverlay: { root: document.getElementById('ar-overlay') }
+      });
+      document.body.appendChild(arButton);
 
+      // Video plane
       videoTexture = new THREE.VideoTexture(video);
-      const geometry = new THREE.PlaneGeometry(1, 0.56); // 16:9 aspect
+      const geometry = new THREE.PlaneGeometry(1, 0.56);
       const material = new THREE.MeshBasicMaterial({ map: videoTexture });
       videoPlane = new THREE.Mesh(geometry, material);
       videoPlane.visible = false;
       scene.add(videoPlane);
 
+      // Reticle
       const ringGeo = new THREE.RingGeometry(0.05, 0.06, 32).rotateX(-Math.PI / 2);
       const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
       reticle = new THREE.Mesh(ringGeo, ringMat);
       reticle.visible = false;
       scene.add(reticle);
 
+      // Controller for tap
       controller = renderer.xr.getController(0);
       controller.addEventListener('select', onSelect);
       scene.add(controller);
@@ -134,15 +156,14 @@
       renderer.setAnimationLoop(render);
     }
 
-   function onSelect() {
-  if (reticle.visible && !videoPlane.visible) {
-    videoPlane.position.setFromMatrixPosition(reticle.matrix);
-    videoPlane.quaternion.setFromRotationMatrix(reticle.matrix);
-    videoPlane.visible = true;
-    document.getElementById('video-buttons').style.display = 'flex'; // ✅ show only after placement
-  }
-}
-
+    function onSelect() {
+      if (reticle.visible && !videoPlane.visible) {
+        videoPlane.position.setFromMatrixPosition(reticle.matrix);
+        videoPlane.quaternion.setFromRotationMatrix(reticle.matrix);
+        videoPlane.visible = true;
+        document.getElementById('video-buttons').style.display = 'flex';
+      }
+    }
 
     function render(timestamp, frame) {
       if (frame) {

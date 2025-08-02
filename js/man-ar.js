@@ -3,7 +3,7 @@ let sceneEl = null,
     arSystem = null;
 
 let AR_READY = false;
-let targetDetectedOnce = false; 
+let targetDetectedOnce = false; // Ensure it runs only once
 const TIMELINE_DETAILS = {
     currentAnimationSeq: 1
 };
@@ -61,42 +61,71 @@ function init() {
         forceRendererResize()
     }
 
- targetImage.addEventListener("targetFound", () => {
-    // ✅ Only run on first detection
-    if (targetDetectedOnce) return;
+    // 📌 Target Found
+   target.addEventListener("targetFound", () => {
+  if (targetDetectedOnce) return;
+  targetDetectedOnce = true;
 
-    targetDetectedOnce = true;
+  // 🎥 Play the main video once
+  const mainVideoEl = document.querySelector("#mainVideo");
+  const aVideo = document.querySelector("#displayVideo");
 
-    const mainVideoEl = document.querySelector("#mainVideo");
-    const aVideo = document.querySelector("#displayVideo");
+  if (mainVideoEl) {
+    mainVideoEl.play().catch(err => console.warn("Autoplay blocked", err));
+  }
 
-    if (mainVideoEl) {
-        mainVideoEl.play().catch(err => console.warn("Autoplay blocked", err));
-    }
+  if (aVideo) {
+    aVideo.setAttribute("visible", "true");
+  }
 
-    if (aVideo) {
-        aVideo.setAttribute("visible", "true"); // ✅ Show the video
-    }
+  // 🎯 Show buttons
+  buttons.forEach(btn => btn.setAttribute("visible", "true"));
 
-    console.log("🎯 Target detected — video triggered once.");
+  // ❌ Hide AR video controls
+  arBackBtn.setAttribute("visible", "false");
+  document.querySelector("#arPlayPauseBtn").setAttribute("visible", "false");
+
+  // ❌ Hide normal UI buttons
+  arBackBtn1.style.display = "none";
+  document.querySelector("#arPlayPauseBtn1").style.display = "none";
+  document.getElementById("voiceToggleBtn").style.display = "none";
+  document.getElementById("descToggleBtn").style.display = "none";
+
+  // 🔤 Show description if enabled
+  if (descriptionVisible) {
+    document.querySelector(".bottom-text").style.display = "none";
+  }
+
+  console.log("✅ Target found and triggered once.");
 });
 
-targetImage.addEventListener("targetLost", () => {
-    // ✅ Do nothing after one-time detection
-    if (targetDetectedOnce) return;
+target.addEventListener("targetLost", () => {
+  if (targetDetectedOnce) return; // Do nothing if already triggered once
 
-    const mainVideoEl = document.querySelector("#mainVideo");
-    const aVideo = document.querySelector("#displayVideo");
+  targetDetected = false;
+  stopAllAudio();
 
-    if (mainVideoEl) {
-        mainVideoEl.pause();
-    }
+  const mainVideoEl = document.querySelector("#mainVideo");
+  const aVideo = document.querySelector("#displayVideo");
 
-    if (aVideo) {
-        aVideo.setAttribute("visible", "false");
-    }
+  if (mainVideoEl) {
+    mainVideoEl.pause();
+  }
 
-    console.log("📴 Target lost before initial detection.");
+  if (aVideo) {
+    aVideo.setAttribute("visible", "false");
+  }
+
+  buttons.forEach(btn => btn.setAttribute("visible", "false"));
+  arBackBtn.setAttribute("visible", "false");
+  document.querySelector("#arPlayPauseBtn").setAttribute("visible", "false");
+  arBackBtn1.style.display = "none";
+  document.querySelector("#arPlayPauseBtn1").style.display = "none";
+  document.getElementById("voiceToggleBtn").style.display = "none";
+  document.getElementById("descToggleBtn").style.display = "none";
+  document.querySelector(".bottom-text").style.display = "none";
+
+  console.log("📴 Target lost before first detection.");
 });
 
     sceneEl.addEventListener("arError", () => {
@@ -112,7 +141,7 @@ function goBack() {
     document.getElementById("videoScreen").classList.remove("active");
     document.getElementById("mainScreen").style.display = "block";
     document.getElementById("mainScreen").classList.add("active");
-    // window.checkOrientation();
+    window.checkOrientation();
     document.querySelectorAll("video").forEach(video => {
         video.pause();
         video.currentTime = 0;
@@ -176,7 +205,7 @@ function goToAnimation() {
 
     if (arSystem && arSystem.running) arSystem.stop();
 
-    changeVideoSource("assets/video/Video1.mp4");
+    changeVideoSource("assets/video/Test-01.mp4");
     init();
 
     // Multiple resize calls to stabilize WebXR and canvas
@@ -184,7 +213,7 @@ function goToAnimation() {
     setTimeout(forceRendererResize, 200);
     setTimeout(forceRendererResize, 500);
     setTimeout(forceRendererResize, 1000);
-    // checkOrientation();
+    checkOrientation();
 
     sessionStorage.setItem("cameraActive", "true");
 }
@@ -237,12 +266,19 @@ document.addEventListener("DOMContentLoaded", () => {
     sceneEl.addEventListener("loaded", () => {
         arSystem = sceneEl.systems["mindar-image-system"];
         document.querySelector('#mainScreen .btn-container').classList.add('show');
-     
+        window.checkOrientation();
+        setTimeout(forceResize, 100);
     });
 });
 
+// ✅ Listen for resize events
+window.addEventListener('resize', () => {
+    window.checkOrientation();
+    setTimeout(forceResize, 100);
+});
 
 // ✅ Global Access
 window.goToAnimation = goToAnimation;
 window.goBack = goBack;
 window.changeVideo = changeVideo;
+window.forceResize = forceResize;

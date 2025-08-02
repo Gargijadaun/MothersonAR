@@ -26,7 +26,29 @@
   display: none !important;
 }
 
- 
+   #rotate-warning {
+  display: none; 
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(49, 34, 183, 0.95);
+  color: white;
+  font-size: 5vw;
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+#rotate-warning p {
+  max-width: 80%;
+  line-height: 1.2;
+}
 
 
     #fullscreen-button {
@@ -286,13 +308,39 @@ a-scene {
   z-index: 1;
   overflow: hidden;
 }
-  
+    @media screen and (orientation: portrait) {
+      #rotate-warning {
+        display: flex;
+      }
+
+      #mainScreen,
+      .btn-container1,
+      .single-btn-container,
+      #videoScreen,
+      #videoPlayerScreen {
+        display: none !important;
+      }
+
+      a-scene {
+        display: block !important;
+     
+    z-index: 1;
+      }
+     
+    }
   </style>
 </head>
 
 <body>
   <main>
-  
+    <!-- Landscape Mode Warning -->
+ <div id="rotate-warning">
+  <p>Please rotate your phone<br>to landscape mode</p>
+  <img src="assets/images/rotate.png" alt="Rotate Phone" style="width: 100px; margin-top: 10px;">
+</div>
+
+
+
     <!-- Fullscreen Button -->
     <button id="fullscreen-button" onclick="enterFullscreen()">Enter Full-Screen</button>
 
@@ -539,6 +587,37 @@ let targetDetected = false;     // whether image target is currently visible
       video.style.transform = `scale(${scale}) translate(${translateX / scale}px, ${translateY / scale}px)`;
     }
 
+    // ✅ Update checkOrientation to trigger resize
+function checkOrientation() {
+  const isPortrait = window.innerHeight > window.innerWidth;
+  const warning = document.getElementById("rotate-warning");
+  const mainScreen = document.getElementById("mainScreen");
+  const aScene = document.querySelector("a-scene");
+  const videoScreen = document.getElementById("videoScreen");
+  const videoPlayerScreen = document.getElementById("videoPlayerScreen");
+  const fullscreenbutton = document.getElementById("fullscreen-button");
+
+  if (isPortrait) {
+    fullscreenbutton.style.display = "none";
+    warning.style.display = "flex";
+    mainScreen.style.display = "none";
+    if (aScene) aScene.style.display = "none";
+    videoScreen.style.display = "none";
+    videoPlayerScreen.style.display = "none";
+  } else {
+    warning.style.display = "none";
+    mainScreen.style.display = mainScreen.classList.contains("active") ? "block" : "none";
+    if (aScene) {
+      aScene.style.display = "block";
+      // Force renderer resize when scene is made visible
+      
+    }
+    videoScreen.style.display = videoScreen.classList.contains("active") ? "block" : "none";
+    videoPlayerScreen.style.display = videoPlayerScreen.classList.contains("active") ? "block" : "none";
+    fullscreenbutton.style.display = "block";
+  }
+}
+
  function enterFullscreen() {
   const elem = document.documentElement;
   const requestFullscreen =
@@ -549,11 +628,11 @@ let targetDetected = false;     // whether image target is currently visible
   if (requestFullscreen) {
     requestFullscreen.call(elem).finally(() => {
       document.getElementById('fullscreen-button').classList.add('hide-important');
- 
+      checkOrientation();
     });
   } else {
     document.getElementById('fullscreen-button').classList.add('hide-important');
-   
+    checkOrientation();
   }
 }
 
@@ -564,7 +643,7 @@ let targetDetected = false;     // whether image target is currently visible
       document.getElementById("videoScreen").style.display = "block";
       document.getElementById("videoScreen").classList.add("active");
       document.querySelector(".back-btn").style.display = "block";
-  
+      checkOrientation();
     }
 function toggleVoiceOver() {
   const btn = document.getElementById("voiceToggleBtn");
@@ -622,7 +701,7 @@ function toggleDescription() {
   document.getElementById("videoPlayerScreen").style.display = "block";
   document.getElementById("videoPlayerScreen").classList.add("active");
 
-
+  checkOrientation();
 }
 
  function toggleARVideoPlayPause() {
@@ -670,7 +749,7 @@ function toggleDescription() {
       document.getElementById("videoPlayerScreen").classList.remove("active");
       document.getElementById("videoScreen").style.display = "block";
       document.getElementById("videoScreen").classList.add("active");
- 
+      checkOrientation();
     }
 
     function playAllVideos() {
@@ -960,7 +1039,7 @@ target.addEventListener('targetLost', () => {
 window.addEventListener("load", () => {
   document.getElementById("fullscreen-button").style.display = "none";
   document.getElementById("mainScreen").classList.add("active");
- 
+  checkOrientation();
  
 
 
@@ -972,7 +1051,8 @@ window.addEventListener("load", () => {
   document.getElementById("arPlayPauseBtn1").style.backgroundColor = "#018fbf";
 });
 
-    
+    window.addEventListener("resize", checkOrientation);
+    window.addEventListener("orientationchange", () => setTimeout(checkOrientation, 200));
   </script>
 </body>
 

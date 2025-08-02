@@ -1,9 +1,9 @@
 let sceneEl = null,
     targetImage = null,
     arSystem = null;
-
+let hasTargetBeenDetected = false;
 let AR_READY = false;
-let targetDetectedOnce = false; // Ensure it runs only once
+
 const TIMELINE_DETAILS = {
     currentAnimationSeq: 1
 };
@@ -61,71 +61,38 @@ function init() {
         forceRendererResize()
     }
 
-    // 📌 Target Found
-   target.addEventListener("targetFound", () => {
-  if (targetDetectedOnce) return;
-  targetDetectedOnce = true;
 
-  // 🎥 Play the main video once
-  const mainVideoEl = document.querySelector("#mainVideo");
-  const aVideo = document.querySelector("#displayVideo");
+targetImage.addEventListener("targetFound", () => {
+    if (hasTargetBeenDetected) return; // 🔁 Skip if already detected once
+    hasTargetBeenDetected = true;      // ✅ Mark as detected
 
-  if (mainVideoEl) {
-    mainVideoEl.play().catch(err => console.warn("Autoplay blocked", err));
-  }
+    const mainVideoEl = document.querySelector("#mainVideo");
+    const aVideo = document.querySelector("#displayVideo");
 
-  if (aVideo) {
-    aVideo.setAttribute("visible", "true");
-  }
+    if (mainVideoEl) {
+        mainVideoEl.play().catch(err => console.warn("Autoplay blocked", err));
+    }
+    if (aVideo) {
+        aVideo.setAttribute("visible", "false");
+    }
 
-  // 🎯 Show buttons
-  buttons.forEach(btn => btn.setAttribute("visible", "true"));
-
-  // ❌ Hide AR video controls
-  arBackBtn.setAttribute("visible", "false");
-  document.querySelector("#arPlayPauseBtn").setAttribute("visible", "false");
-
-  // ❌ Hide normal UI buttons
-  arBackBtn1.style.display = "none";
-  document.querySelector("#arPlayPauseBtn1").style.display = "none";
-  document.getElementById("voiceToggleBtn").style.display = "none";
-  document.getElementById("descToggleBtn").style.display = "none";
-
-  // 🔤 Show description if enabled
-  if (descriptionVisible) {
-    document.querySelector(".bottom-text").style.display = "none";
-  }
-
-  console.log("✅ Target found and triggered once.");
+    console.log("🎯 Target detected and action triggered once.");
 });
 
-target.addEventListener("targetLost", () => {
-  if (targetDetectedOnce) return; // Do nothing if already triggered once
+targetImage.addEventListener("targetLost", () => {
+    if (hasTargetBeenDetected) return; // 🛑 Do nothing if already detected once
 
-  targetDetected = false;
-  stopAllAudio();
+    const mainVideoEl = document.querySelector("#mainVideo");
+    const aVideo = document.querySelector("#displayVideo");
 
-  const mainVideoEl = document.querySelector("#mainVideo");
-  const aVideo = document.querySelector("#displayVideo");
+    if (mainVideoEl) {
+        mainVideoEl.pause();
+    }
+    if (aVideo) {
+        aVideo.setAttribute("visible", "false");
+    }
 
-  if (mainVideoEl) {
-    mainVideoEl.pause();
-  }
-
-  if (aVideo) {
-    aVideo.setAttribute("visible", "false");
-  }
-
-  buttons.forEach(btn => btn.setAttribute("visible", "false"));
-  arBackBtn.setAttribute("visible", "false");
-  document.querySelector("#arPlayPauseBtn").setAttribute("visible", "false");
-  arBackBtn1.style.display = "none";
-  document.querySelector("#arPlayPauseBtn1").style.display = "none";
-  document.getElementById("voiceToggleBtn").style.display = "none";
-  document.getElementById("descToggleBtn").style.display = "none";
-  document.querySelector(".bottom-text").style.display = "none";
-
-  console.log("📴 Target lost before first detection.");
+    console.log("📴 Target lost before detection.");
 });
 
     sceneEl.addEventListener("arError", () => {

@@ -3,7 +3,7 @@ let sceneEl = null,
     arSystem = null;
 
 let AR_READY = false;
-
+let targetDetectedOnce = false; 
 const TIMELINE_DETAILS = {
     currentAnimationSeq: 1
 };
@@ -61,31 +61,43 @@ function init() {
         forceRendererResize()
     }
 
-    // 📌 Target Found
-    targetImage.addEventListener("targetFound", () => {
-        const mainVideoEl = document.querySelector("#mainVideo");
-        const aVideo = document.querySelector("#displayVideo");
+ targetImage.addEventListener("targetFound", () => {
+    // ✅ Only run on first detection
+    if (targetDetectedOnce) return;
 
-        if (mainVideoEl) {
-            mainVideoEl.play().catch(err => console.warn("Autoplay blocked", err));
-        }
-        if (aVideo) {
-            aVideo.setAttribute("visible", "false");
-        }
-    });
+    targetDetectedOnce = true;
 
-    // 📌 Target Lost
-    targetImage.addEventListener("targetLost", () => {
-        const mainVideoEl = document.querySelector("#mainVideo");
-        const aVideo = document.querySelector("#displayVideo");
+    const mainVideoEl = document.querySelector("#mainVideo");
+    const aVideo = document.querySelector("#displayVideo");
 
-        if (mainVideoEl) {
-            mainVideoEl.pause();
-        }
-        if (aVideo) {
-            aVideo.setAttribute("visible", "false");
-        }
-    });
+    if (mainVideoEl) {
+        mainVideoEl.play().catch(err => console.warn("Autoplay blocked", err));
+    }
+
+    if (aVideo) {
+        aVideo.setAttribute("visible", "true"); // ✅ Show the video
+    }
+
+    console.log("🎯 Target detected — video triggered once.");
+});
+
+targetImage.addEventListener("targetLost", () => {
+    // ✅ Do nothing after one-time detection
+    if (targetDetectedOnce) return;
+
+    const mainVideoEl = document.querySelector("#mainVideo");
+    const aVideo = document.querySelector("#displayVideo");
+
+    if (mainVideoEl) {
+        mainVideoEl.pause();
+    }
+
+    if (aVideo) {
+        aVideo.setAttribute("visible", "false");
+    }
+
+    console.log("📴 Target lost before initial detection.");
+});
 
     sceneEl.addEventListener("arError", () => {
         console.log("MindAR failed to start");

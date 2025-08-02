@@ -68,7 +68,7 @@
       <button onclick="changeVideo('assets/video/Video1.mp4')">Video 1</button>
       <button onclick="changeVideo('assets/video/Video2.mp4')">Video 2</button>
       <button onclick="changeVideo('assets/video/Video3.mp4')">Video 3</button>
-      <button onclick="changeVideo('assets/video/Video5.mp4')">Video 4</button>
+      <button onclick="changeVideo('assets/video/Video4.mp4')">Video 4</button>
       <button onclick="changeVideo('assets/video/Video5.mp4')">Video 5</button>
     </div>
   </div>
@@ -110,7 +110,7 @@
       video.playsInline = true;
       video.crossOrigin = 'anonymous';
 
-      // Scene
+      // Scene setup
       scene = new THREE.Scene();
       camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
 
@@ -132,6 +132,7 @@
       const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
       reticle = new THREE.Mesh(ringGeo, ringMat);
       reticle.visible = false;
+      reticle.matrixAutoUpdate = false; // IMPORTANT
       scene.add(reticle);
 
       // Controller for placement
@@ -160,11 +161,9 @@
 
     function onSelect() {
       if (reticle.visible) {
-        // Place video at reticle
         videoPlane.position.setFromMatrixPosition(reticle.matrix);
         videoPlane.quaternion.setFromRotationMatrix(reticle.matrix);
       } else {
-        // Place video in front of camera if no reticle
         const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
         const position = new THREE.Vector3().copy(camera.position).add(direction.multiplyScalar(1));
         videoPlane.position.copy(position);
@@ -173,7 +172,6 @@
 
       videoPlane.visible = true;
 
-      // Play only after placement to comply with autoplay
       video.play().catch(console.error);
     }
 

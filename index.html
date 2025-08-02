@@ -1,75 +1,190 @@
 <!DOCTYPE html>
+<!--
+Copyright 2018 The Immersive Web Community Group
+Licensed under the MIT License.
+-->
 <html>
   <head>
-    <title>Plane Detection AR Video</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aframe-ar-hit-test@1.1.1/dist/aframe-ar-hit-test.min.js"></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>AR Video Playback</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      header {
+        position: absolute;
+        top: 0;
+        width: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        color: white;
+        padding: 10px;
+      }
+      .back {
+        color: #0af;
+      }
+      button {
+        padding: 10px;
+        font-size: 16px;
+      }
+    </style>
   </head>
+  <body>
+    <header>
+      <details open>
+        <summary>AR Video Playback</summary>
+        <p>
+          Tap to place a video on a detected surface.
+          <a class="back" href="./">Back</a>
+        </p>
+      </details>
+    </header>
+    <script type="module">
+      import {Scene} from './js/render/scenes/scene.js';
+      import {Renderer, createWebGLContext} from './js/render/core/renderer.js';
+      import {Node} from './js/render/core/node.js';
+      import {VideoNode} from './js/render/nodes/video.js';
+      import {vec3, mat4} from './js/render/math/gl-matrix.js';
 
-  <body style="margin: 0; overflow: hidden;">
-    <a-scene
-      webxr="optionalFeatures: hit-test;"
-      vr-mode-ui="enabled: false"
-      ar-hit-test="target: #videoPlane"
-      embedded
-      renderer="colorManagement: true; physicallyCorrectLights: true;"
-    >
-      <!-- Assets -->
-      <a-assets>
-        <video id="videoAsset" src="./assets/video/Video1.mp4" loop playsinline crossorigin="anonymous"></video>
-      </a-assets>
+      // XR globals
+      let xrButton = null;
+      let xrRefSpace = null;
+      let xrViewerSpace = null;
+      let xrHitTestSource = null;
 
-      <!-- AR Camera -->
-      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+      // WebGL scene globals
+      let gl = null;
+      let renderer = null;
+      let scene = new Scene();
+      scene.clear = false; // Transparent background for AR
 
-      <!-- Video Plane (Initially Hidden) -->
-      <a-video
-        id="videoPlane"
-        src="#videoAsset"
-        width="1"
-        height="0.56"
-        rotation="-90 0 0"
-        visible="false"
-      ></a-video>
+      // Video element
+      let video = document.createElement('video');
+      video.src = './media/video/Video1.mp4'; // Replace with your video path
+      video.loop = true;
+      video.muted = false; // Set to false to allow sound (user interaction required)
+      let videoNode = null;
 
-      <!-- Reticle (Hit test indicator) -->
-      <a-entity
-        id="reticle"
-        ar-hit-test-target
-        geometry="primitive: ring; radiusInner: 0.05; radiusOuter: 0.07;"
-        material="color: yellow; shader: flat"
-        position="0 0 0"
-        rotation="-90 0 0"
-        visible="false"
-      ></a-entity>
-    </a-scene>
+      // Reticle for hit-test visualization (simple plane)
+      let reticle = new Node();
+      reticle.visible = false;
+      scene.addNode(reticle);
 
-    <script>
-      const videoPlane = document.getElementById('videoPlane');
-      const video = document.getElementById('videoAsset');
-      const scene = document.querySelector('a-scene');
-      const reticle = document.getElementById('reticle');
+      function initXR() {
+        xrButton = {
+          domElement: document.createElement('button'),
+          enabled: false,
+          setSession: (session) => {
+            xrButton.domElement.textContent = session ? 'EXIT AR' : 'START AR';
+          }
+        };
+        xrButton.domElement.textContent = 'START AR';
+        xrButton.domElement.onclick = () => {
+          if (xrButton.domElement.textContent === 'START AR') {
+            onRequestSession();
+          } else {
+            onEndSession();
+          }
+        };
+        document.querySelector('header').appendChild(xrButton.domElement);
 
-      // Show reticle when hit test finds surface
-      scene.addEventListener('ar-hit-test-select', function () {
-        if (!videoPlane.getAttribute('visible')) {
-          // Place video on the surface
-          const position = reticle.getAttribute('position');
-          videoPlane.setAttribute('position', position);
-          videoPlane.setAttribute('visible', true);
+        if (navigator.xr) {
+          navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
+            xrButton.enabled = supported;
+            xrButton.domElement.disabled = !supported;
+            xrButton.domElement.textContent = supported ? 'START AR' : 'AR NOT FOUND';
+          });
+        }
+      }
+
+      function onRequestSession() {
+        return navigator.xr.requestSession('immersive-ar', {requiredFeatures: ['local', 'hit-test']})
+          .then((session) => {
+            xrButton.setSession(session);
+            onSessionStarted(session);
+          });
+      }
+
+      function onSessionStarted(session) {
+        session.addEventListener('end', onSessionEnded);
+        session.addEventListener('select', onSelect);
+
+        if (!gl) {
+          gl = createWebGLContext({ xrCompatible: true });
+          renderer = new Renderer(gl);
+          scene.setRenderer(renderer);
+        }
+
+        session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
+
+        session.requestReferenceSpace('viewer').then((refSpace) => {
+          xrViewerSpace = refSpace;
+          session.requestHitTestSource({ space: xrViewerSpace }).then((hitTestSource) => {
+            xrHitTestSource = hitTestSource;
+          });
+        });
+
+        session.requestReferenceSpace('local').then((refSpace) => {
+          xrRefSpace = refSpace;
+          session.requestAnimationFrame(onXRFrame);
+        });
+      }
+
+      function onEndSession() {
+        if (xrHitTestSource) {
+          xrHitTestSource.cancel();
+          xrHitTestSource = null;
+        }
+        xrButton.setSession(null);
+        video.pause();
+      }
+
+      function onSessionEnded() {
+        xrButton.setSession(null);
+        video.pause();
+      }
+
+      function onSelect() {
+        if (reticle.visible && !videoNode) {
+          // Create a VideoNode with the video element
+          videoNode = new VideoNode({ video: video, displayMode: 'mono' });
+          videoNode.visible = true;
+          videoNode.matrix = reticle.matrix;
+
+          // Scale the video plane to maintain aspect ratio
+          let aspect = videoNode.aspectRatio;
+          vec3.set(videoNode.scale, aspect * 0.5, 0.5, 1.0); // Adjust size as needed
+          scene.addNode(videoNode);
           video.play();
         }
-      });
+      }
 
-      // Reticle visibility control
-      scene.addEventListener('ar-hit-test-available', () => {
-        reticle.setAttribute('visible', true);
-      });
+      function onXRFrame(t, frame) {
+        let session = frame.session;
+        let pose = frame.getViewerPose(xrRefSpace);
 
-      scene.addEventListener('ar-hit-test-unavailable', () => {
-        reticle.setAttribute('visible', false);
-      });
+        reticle.visible = false;
+
+        if (xrHitTestSource && pose) {
+          let hitTestResults = frame.getHitTestResults(xrHitTestSource);
+          if (hitTestResults.length > 0) {
+            let pose = hitTestResults[0].getPose(xrRefSpace);
+            reticle.visible = true;
+            reticle.matrix = pose.transform.matrix;
+          }
+        }
+
+        scene.startFrame();
+        session.requestAnimationFrame(onXRFrame);
+        scene.drawXRFrame(frame, pose);
+        scene.endFrame();
+      }
+
+      // Start the XR application
+      initXR();
     </script>
   </body>
 </html>

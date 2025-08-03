@@ -1,76 +1,76 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>MindAR Video on Image Target</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+  <meta charset="UTF-8" />
+  <title>MindAR Video on Image Target (No Pause)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- A-Frame + MindAR -->
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <!-- A-Frame + MindAR -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
-    <style>
-      body, html { margin: 0; padding: 0; overflow: hidden; }
-      #ar-container { width: 100vw; height: 100vh; }
-    </style>
-  </head>
+  <style>
+    body, html { margin: 0; padding: 0; overflow: hidden; }
+    #ar-container { width: 100vw; height: 100vh; }
+  </style>
+</head>
 
-  <body>
-    <div id="ar-container">
-      <a-scene
-        mindar-image="imageTargetSrc: ./assets/target/targets.mind; autoStart: true;"
-        embedded
-        color-space="sRGB"
-        renderer="colorManagement: true, physicallyCorrectLights: true"
-        vr-mode-ui="enabled: false"
-        device-orientation-permission-ui="enabled: true"
-      >
-        <!-- Assets -->
-        <a-assets>
-          <video id="targetVideo" src="./assets/video/Video1.mp4" preload="auto" crossorigin="anonymous" webkit-playsinline playsinline></video>
-        </a-assets>
+<body>
+  <div id="ar-container">
+    <a-scene
+      mindar-image="imageTargetSrc: ./assets/target/targets.mind; autoStart: true;"
+      embedded
+      color-space="sRGB"
+      renderer="colorManagement: true, physicallyCorrectLights: true"
+      vr-mode-ui="enabled: false"
+      device-orientation-permission-ui="enabled: true"
+    >
+      <!-- Assets -->
+      <a-assets>
+        <video id="targetVideo" src="./assets/video/Video1.mp4" preload="auto" crossorigin="anonymous" webkit-playsinline playsinline></video>
+      </a-assets>
 
-        <!-- Camera -->
-        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+      <!-- Camera -->
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-        <!-- Image Target + Video Plane -->
-        <a-entity mindar-image-target="targetIndex: 0">
-          <a-video
-            id="videoPlane"
-            src="#targetVideo"
-            width="1.5"
-            height="0.85"
-            position="0 0 0"
-            rotation="0 0 0"
-            visible="false"
-          ></a-video>
-        </a-entity>
-      </a-scene>
-    </div>
+      <!-- Image Target + Video Plane -->
+      <a-entity mindar-image-target="targetIndex: 0">
+        <a-video
+          id="videoPlane"
+          src="#targetVideo"
+          width="1.5"
+          height="0.85"
+          position="0 0 0"
+          rotation="0 0 0"
+          visible="false"
+        ></a-video>
+      </a-entity>
+    </a-scene>
+  </div>
 
-    <!-- Script to trigger video once per detection -->
-    <script>
-      let videoPlayed = false;
+  <!-- Script: Play video once on detection, never stop -->
+  <script>
+    let videoPlayed = false;
 
-      document.addEventListener("DOMContentLoaded", () => {
-        const sceneEl = document.querySelector("a-scene");
-        const videoEl = document.querySelector("#targetVideo");
-        const videoPlane = document.querySelector("#videoPlane");
-        const targetEntity = document.querySelector("[mindar-image-target]");
+    document.addEventListener("DOMContentLoaded", () => {
+      const videoEl = document.querySelector("#targetVideo");
+      const videoPlane = document.querySelector("#videoPlane");
+      const targetEntity = document.querySelector("[mindar-image-target]");
 
-        targetEntity.addEventListener("targetFound", () => {
-          if (!videoPlayed) {
-            videoPlane.setAttribute("visible", "true");
-            videoEl.play();
-            videoPlayed = true;
-          }
-        });
-
-        targetEntity.addEventListener("targetLost", () => {
-          videoEl.pause();
-          videoPlane.setAttribute("visible", "false");
-        });
+      targetEntity.addEventListener("targetFound", () => {
+        if (!videoPlayed) {
+          videoPlane.setAttribute("visible", "true");
+          videoEl.play();
+          videoPlayed = true;
+        }
       });
-    </script>
-  </body>
+
+      // Remove this to avoid pausing/hiding video on target lost
+      // targetEntity.addEventListener("targetLost", () => {
+      //   videoEl.pause();
+      //   videoPlane.setAttribute("visible", "false");
+      // });
+    });
+  </script>
+</body>
 </html>

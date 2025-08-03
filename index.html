@@ -1,94 +1,113 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Persistent AR Video</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+  <meta charset="UTF-8" />
+  <title>Persistent AR Video</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- A-Frame + MindAR -->
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <!-- A-Frame and MindAR -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
-    <style>
-      body, html {
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-      }
-      #scanning-overlay {
-        position: absolute;
-        width: 100vw;
-        height: 100vh;
-        background-color: black;
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 2em;
-        z-index: 10;
-      }
-    </style>
-  </head>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
 
-  <body>
-    <div id="scanning-overlay">🔍 Scanning for image...</div>
+    #scanning-overlay {
+      position: absolute;
+      width: 100vw;
+      height: 100vh;
+      background-color: black;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2em;
+      z-index: 10;
+    }
+  </style>
+</head>
 
-    <a-scene
-      mindar-image="imageTargetSrc: ./assets/target/targets.mind; autoStart: true;"
-      embedded
-      color-space="sRGB"
-      renderer="colorManagement: true, physicallyCorrectLights: true"
-      vr-mode-ui="enabled: false"
-      device-orientation-permission-ui="enabled: true"
-    >
-      <!-- Assets -->
-      <a-assets>
-        <video id="targetVideo" src="./assets/video/Video1.mp4" preload="auto" loop="true" crossorigin="anonymous" playsinline webkit-playsinline></video>
-      </a-assets>
+<body>
+  <div id="scanning-overlay">🔍 Scanning for image...</div>
 
-      <!-- Camera -->
-      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+  <a-scene
+    mindar-image="imageTargetSrc: ./assets/target/targets.mind; autoStart: true;"
+    embedded
+    color-space="sRGB"
+    renderer="colorManagement: true, physicallyCorrectLights: true"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: true"
+  >
+    <!-- Assets -->
+    <a-assets>
+      <video
+        id="targetVideo"
+        src="./assets/video/Video1.mp4"
+        preload="auto"
+        loop
+        crossorigin="anonymous"
+        playsinline
+        webkit-playsinline
+      ></video>
+    </a-assets>
 
-      <!-- Image Target -->
-      <a-entity mindar-image-target="targetIndex: 0" id="targetEntity">
-        <!-- Empty, we only use target detection -->
-      </a-entity>
+    <!-- Camera -->
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-      <!-- Free-floating video in world space -->
-      <a-entity id="videoWrapper" visible="false" position="0 0 -2">
+    <!-- Image Target Entity -->
+    <a-entity mindar-image-target="targetIndex: 0" id="targetEntity">
+      <a-entity id="videoWrapper" visible="false">
         <a-video
           id="videoPlane"
           src="#targetVideo"
           width="1.5"
           height="0.85"
+          position="0 0 0"
           rotation="0 0 0"
         ></a-video>
       </a-entity>
-    </a-scene>
+    </a-entity>
+  </a-scene>
 
-    <script>
-      window.addEventListener("DOMContentLoaded", () => {
-        const videoEl = document.querySelector("#targetVideo");
-        const videoWrapper = document.querySelector("#videoWrapper");
-        const targetEntity = document.querySelector("#targetEntity");
-        const scanner = document.getElementById("scanning-overlay");
+  <script>
+    window.addEventListener("DOMContentLoaded", () => {
+      const videoEl = document.querySelector("#targetVideo");
+      const videoPlane = document.querySelector("#videoPlane");
+      const videoWrapper = document.querySelector("#videoWrapper");
+      const targetEntity = document.querySelector("#targetEntity");
+      const scanner = document.getElementById("scanning-overlay");
 
-        let videoPlaced = false;
+      let videoStarted = false;
 
-        targetEntity.addEventListener("targetFound", () => {
-          if (!videoPlaced) {
-            videoWrapper.setAttribute("visible", "true");
-            videoEl.play();
-            scanner.style.display = "none";
-            videoPlaced = true;
-          }
+      // Handle iOS autoplay policies
+      const unlockVideo = () => {
+        videoEl.play().then(() => {
+          videoEl.pause();
+          window.removeEventListener('click', unlockVideo);
+        }).catch((e) => {
+          console.warn("Autoplay block: user interaction needed.");
         });
+      };
+      window.addEventListener('click', unlockVideo);
 
-        // Don't hide or stop video on targetLost
-        targetEntity.addEventListener("targetLost", () => {
-          // Do nothing, keep video visible and playing
-        });
+      targetEntity.addEventListener("targetFound", () => {
+        if (!videoStarted) {
+          videoWrapper.setAttribute("visible", "true");
+          videoEl.play();
+          if (scanner) scanner.style.display = "none";
+          videoStarted = true;
+        }
       });
-    </script>
-  </body>
+
+      // Keep video visible even after target is lost
+      targetEntity.addEventListener("targetLost", () => {
+        // No action taken — video remains visible
+      });
+    });
+  </script>
+</body>
 </html>

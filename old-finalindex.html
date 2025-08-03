@@ -1016,23 +1016,23 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// target.addEventListener('targetLost', () => {
-//   targetDetected = false;
-//  stopAllAudio();
-//   buttons.forEach(btn => btn.setAttribute('visible', 'false'));
-//   displayVideo.setAttribute('visible', 'false');
-//   displayVideo.pause();
-//   arBackBtn.setAttribute('visible', 'false');
-//   document.querySelector("#arPlayPauseBtn").setAttribute("visible", "false");
-//     arBackBtn1.style.display ="none";
-//        document.querySelector("#arPlayPauseBtn1").style.display ="none";
+target.addEventListener('targetLost', () => {
+  targetDetected = false;
+ stopAllAudio();
+  buttons.forEach(btn => btn.setAttribute('visible', 'false'));
+  displayVideo.setAttribute('visible', 'false');
+  displayVideo.pause();
+  arBackBtn.setAttribute('visible', 'false');
+  document.querySelector("#arPlayPauseBtn").setAttribute("visible", "false");
+    arBackBtn1.style.display ="none";
+       document.querySelector("#arPlayPauseBtn1").style.display ="none";
 
-//   document.getElementById("voiceToggleBtn").style.display = "none";
-//   document.getElementById("descToggleBtn").style.display = "none";
+  document.getElementById("voiceToggleBtn").style.display = "none";
+  document.getElementById("descToggleBtn").style.display = "none";
 
-//   // Hide description always when lost
-//   document.querySelector(".bottom-text").style.display = "none";
-// });
+  // Hide description always when lost
+  document.querySelector(".bottom-text").style.display = "none";
+});
 
     });
 

@@ -1,110 +1,76 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>MindAR Video on Image Target</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MindAR One-Time Marker Detection with Video</title>
-  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    <!-- A-Frame + MindAR -->
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-    }
+    <style>
+      body, html { margin: 0; padding: 0; overflow: hidden; }
+      #ar-container { width: 100vw; height: 100vh; }
+    </style>
+  </head>
 
-    #scanning-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      z-index: 999;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(0, 0, 0, 0.7);
-      color: white;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 2em;
-    }
-  </style>
-</head>
+  <body>
+    <div id="ar-container">
+      <a-scene
+        mindar-image="imageTargetSrc: ./assets/target/targets.mind; autoStart: true;"
+        embedded
+        color-space="sRGB"
+        renderer="colorManagement: true, physicallyCorrectLights: true"
+        vr-mode-ui="enabled: false"
+        device-orientation-permission-ui="enabled: true"
+      >
+        <!-- Assets -->
+        <a-assets>
+          <video id="targetVideo" src="./assets/video/Video1.mp4" preload="auto" crossorigin="anonymous" webkit-playsinline playsinline></video>
+        </a-assets>
 
-<body>
-  <div id="scanning-overlay">Scanning...</div>
+        <!-- Camera -->
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-  <a-scene
-    mindar-image="imageTargetSrc: ./assets/target/targets.mind; autoStart: true;"
-    mindar-listener
-    vr-mode-ui="enabled: false"
-    device-orientation-permission-ui="enabled: true"
-    renderer="colorManagement: true; physicallyCorrectLights: true; antialias: true;"
-  >
+        <!-- Image Target + Video Plane -->
+        <a-entity mindar-image-target="targetIndex: 0">
+          <a-video
+            id="videoPlane"
+            src="#targetVideo"
+            width="1.5"
+            height="0.85"
+            position="0 0 0"
+            rotation="0 0 0"
+            visible="false"
+          ></a-video>
+        </a-entity>
+      </a-scene>
+    </div>
 
-    <a-assets>
-      <!-- Video -->
-      <video id="myVideo" src="./assets/video/Video1.mp4" preload="auto" loop="true" crossorigin="anonymous"></video>
+    <!-- Script to trigger video once per detection -->
+    <script>
+      let videoPlayed = false;
 
-      <!-- Optional Button Images -->
-      <img id="btn-img" src="./assets/images/01.png" />
-    </a-assets>
+      document.addEventListener("DOMContentLoaded", () => {
+        const sceneEl = document.querySelector("a-scene");
+        const videoEl = document.querySelector("#targetVideo");
+        const videoPlane = document.querySelector("#videoPlane");
+        const targetEntity = document.querySelector("[mindar-image-target]");
 
-    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-
-    <!-- Marker setup -->
-    <a-entity mindar-image-target="targetIndex: 0">
-      <!-- Invisible marker anchor to trigger detection only -->
-      <a-entity id="videoAnchor" visible="false">
-        <!-- Video Plane -->
-        <a-video id="displayVideo" src="#myVideo" width="1.5" height="0.8" position="0 0 0" visible="false">
-        </a-video>
-
-        <!-- Buttons -->
-        <a-image id="btn1" src="#btn-img" position="-0.7 -0.6 0" width="0.3" height="0.15" visible="false"></a-image>
-        <a-image id="btn2" src="#btn-img" position="-0.3 -0.6 0" width="0.3" height="0.15" visible="false"></a-image>
-        <a-image id="btn3" src="#btn-img" position="0.1 -0.6 0" width="0.3" height="0.15" visible="false"></a-image>
-        <a-image id="btn4" src="#btn-img" position="0.5 -0.6 0" width="0.3" height="0.15" visible="false"></a-image>
-        <a-image id="btn5" src="#btn-img" position="0.9 -0.6 0" width="0.3" height="0.15" visible="false"></a-image>
-      </a-entity>
-    </a-entity>
-  </a-scene>
-
-  <!-- JS to track image once -->
-  <script>
-    let targetDetectedOnce = false;
-
-    AFRAME.registerComponent("mindar-listener", {
-      init: function () {
-        const sceneEl = this.el;
-        const overlay = document.getElementById("scanning-overlay");
-
-        sceneEl.addEventListener("targetFound", () => {
-          if (!targetDetectedOnce) {
-            console.log("Target found for the first time!");
-            targetDetectedOnce = true;
-            overlay.style.display = "none";
-
-            // Show video and buttons
-            document.querySelector("#displayVideo").setAttribute("visible", true);
-            document.querySelector("#btn1").setAttribute("visible", true);
-            document.querySelector("#btn2").setAttribute("visible", true);
-            document.querySelector("#btn3").setAttribute("visible", true);
-            document.querySelector("#btn4").setAttribute("visible", true);
-            document.querySelector("#btn5").setAttribute("visible", true);
-
-            // Play video
-            const video = document.querySelector("#myVideo");
-            video.play().catch(err => console.log("Video play failed:", err));
+        targetEntity.addEventListener("targetFound", () => {
+          if (!videoPlayed) {
+            videoPlane.setAttribute("visible", "true");
+            videoEl.play();
+            videoPlayed = true;
           }
         });
 
-        sceneEl.addEventListener("targetLost", () => {
-          // Do nothing - content stays shown
-          console.log("Target lost, but ignoring it after first detection");
+        targetEntity.addEventListener("targetLost", () => {
+          videoEl.pause();
+          videoPlane.setAttribute("visible", "false");
         });
-      }
-    });
-  </script>
-</body>
-
+      });
+    </script>
+  </body>
 </html>

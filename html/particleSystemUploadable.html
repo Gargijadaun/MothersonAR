@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en" style='width:100%;height:100%;margin:0px;padding:0px;'>
+	<head>
+		<meta charset="utf-8">
+		<title>particleSystem</title>
+
+		<meta name="Description" content="a particleSystem">
+		<meta name="author" content="Graeme Niedermayer">
+
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<style type="text/css">
+			body .dg li.title,
+			body .dg li:not(.folder),
+			body .dg.main .close-button {
+				background-color: rgba(0, 0, 0, 0.5);
+			}
+
+			body {
+				background-color: black;
+			}
+		</style>
+	</head>
+<body style='width:100%;height:100%;margin:0px;padding:0px;overflow:hidden;'>
+    <input id='file1' style="z-index:2;position:absolute;width:6rem;top:0.1rem;" type="file" accept="image/*">
+    <input id='file2' style="z-index:2;position:absolute;width:6rem;top:1.2rem;" type="file" accept="image/*">
+    <input id='file3' style="z-index:2;position:absolute;width:6rem;top:2.3rem;" type="file" accept="image/*">
+    <image id='image1' style="width:15rem;height:15rem;position:absolute;top:4000px;"></canvas>
+    <image id='image2' style="width:15rem;height:15rem;position:absolute;top:4000px;"></canvas>
+    <image id='image3' style="width:15rem;height:15rem;position:absolute;top:4000px;"></canvas>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/110/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
+<script src="https://unpkg.com/three@0.85.0/examples/js/controls/OrbitControls.js"></script>
+<script src='../javascript/particleSystemUploadable.js'></script>
+
+</body>
+</html>
